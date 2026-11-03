@@ -1,7 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const { getPool } = require('../db');
-const { requireAdmin } = require('../auth');
+const { requireAdmin, generateToken } = require('../auth');
+
+// POST /api/settings/verify-pin
+router.post('/verify-pin', requireAdmin, (req, res) => {
+  const { pin } = req.body;
+  const configuredPin = process.env.ADMIN_PIN || '969396';
+
+  if (!pin || String(pin).trim() !== String(configuredPin).trim()) {
+    return res.status(401).json({ success: false, error: 'Incorrect security PIN. Access denied.' });
+  }
+
+  res.json({ success: true, message: 'Security PIN verified successfully.' });
+});
 
 // GET /api/settings
 router.get('/', requireAdmin, async (req, res) => {

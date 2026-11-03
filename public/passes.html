@@ -752,8 +752,7 @@
       document.getElementById('smtpModal').classList.add('hidden');
     }
 
-    /* ---- PIN logic ---- */
-    const _SMTP_PIN = '969396';
+    /* ---- Backend Verified PIN logic ---- */
     let _pinEntry = '';
 
     function _pinUpdateDots() {
@@ -769,27 +768,35 @@
       }
     }
 
-    function pinKey(digit) {
+    async function pinKey(digit) {
       if (_pinEntry.length >= 6) return;
       _pinEntry += digit;
       _pinUpdateDots();
+
       if (_pinEntry.length === 6) {
-        setTimeout(() => {
-          if (_pinEntry === _SMTP_PIN) {
+        const enteredPin = _pinEntry;
+        try {
+          const res = await API.request('/api/settings/verify-pin', {
+            method: 'POST',
+            body: JSON.stringify({ pin: enteredPin })
+          });
+
+          if (res.success) {
             document.getElementById('pinModal').classList.add('hidden');
             document.getElementById('pinError').classList.add('hidden');
             fetchSmtpSettings();
             document.getElementById('smtpModal').classList.remove('hidden');
-          } else {
-            document.getElementById('pinError').classList.remove('hidden');
-            // shake animation
-            const box = document.getElementById('pinDots');
-            box.classList.add('animate-bounce');
-            setTimeout(() => box.classList.remove('animate-bounce'), 400);
-            _pinEntry = '';
-            _pinUpdateDots();
           }
-        }, 150);
+        } catch (err) {
+          const errEl = document.getElementById('pinError');
+          errEl.textContent = err.message || 'Incorrect PIN. Access denied.';
+          errEl.classList.remove('hidden');
+          const box = document.getElementById('pinDots');
+          box.classList.add('animate-bounce');
+          setTimeout(() => box.classList.remove('animate-bounce'), 400);
+          _pinEntry = '';
+          _pinUpdateDots();
+        }
       }
     }
 
