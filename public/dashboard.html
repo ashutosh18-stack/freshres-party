@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Fresher Fiesta 2026</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased" style="display:flex; flex-direction:row; min-height:100vh;">
+
+  <!-- Mobile Top Header (hidden on tablet+ via CSS) -->
+  <header class="mobile-top-header" style="display:none; position:fixed; top:0; left:0; right:0; z-index:60; background:#fff; border-bottom:1px solid #e2e8f0; padding:0.875rem 1rem; align-items:center; justify-content:space-between; box-shadow:0 1px 4px rgba(15,23,42,0.07);">
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <div style="width:2.25rem; height:2.25rem; border-radius:0.75rem; background:#2563eb; display:flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-ticket-simple" style="color:#fff; font-size:0.85rem;"></i>
+      </div>
+      <div>
+        <span style="font-weight:800; font-size:0.95rem; color:#0f172a; display:block; line-height:1.2;">Fresher Fiesta</span>
+        <span style="font-size:0.65rem; color:#64748b; font-weight:500;">Dashboard Control</span>
+      </div>
+    </div>
+    <button id="mobile-menu-toggle" style="padding:0.5rem; background:none; border:none; cursor:pointer; color:#475569;" aria-label="Toggle Navigation">
+      <i class="fa-solid fa-bars" style="font-size:1.25rem;"></i>
+    </button>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="flex flex-col justify-between bg-white border-r border-slate-200">
+    <div>
+      <!-- Brand -->
+      <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
+          <i class="fa-solid fa-ticket-simple text-base"></i>
+        </div>
+        <div>
+          <h2 class="font-extrabold text-base text-slate-900 leading-none">Fresher Fiesta</h2>
+          <span class="text-[11px] text-slate-500 font-medium">Entry Gate Platform</span>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="p-4 space-y-1.5 text-sm font-medium">
+        <a href="/dashboard.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 transition">
+          <i class="fa-solid fa-chart-pie w-5 text-blue-600 text-center"></i>
+          <span class="font-semibold">Dashboard</span>
+        </a>
+        <a href="/students.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-users-viewfinder w-5 text-slate-500 text-center"></i>
+          <span>Student Directory</span>
+        </a>
+        <a href="/passes.html" class="admin-only flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-envelope-open-text w-5 text-slate-500 text-center"></i>
+          <span>QR Passes & Email</span>
+        </a>
+        <a href="/scanner.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-qrcode w-5 text-slate-500 text-center"></i>
+          <span>Gate Scanner</span>
+        </a>
+        <a href="/volunteers.html" class="admin-only flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-users-gear w-5 text-slate-500 text-center"></i>
+          <span>Gate Volunteers</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- User Profile & Logout -->
+    <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+      <div class="flex items-center justify-between mb-3 px-1">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div id="nav-user-avatar" class="w-8 h-8 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-xs shrink-0">A</div>
+          <div class="overflow-hidden">
+            <p id="nav-user-name" class="text-xs font-bold text-slate-900 truncate">Admin</p>
+            <span id="nav-user-role" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">ADMIN</span>
+          </div>
+        </div>
+      </div>
+      <button id="btn-logout" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition">
+        <i class="fa-solid fa-arrow-right-from-bracket text-slate-500"></i>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main id="main-content" class="flex flex-col min-w-0 overflow-y-auto" style="flex:1;">
+    <!-- Top Bar -->
+    <div class="p-4 sm:p-6 md:px-8 bg-white border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Party Control Dashboard</h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Real-time gate admittance, pass generation, and student verification</p>
+      </div>
+      <div class="flex items-center gap-2.5">
+        <button onclick="refreshDashboard()" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-300 shadow-sm flex items-center gap-2 transition active:scale-95">
+          <i class="fa-solid fa-rotate text-xs text-blue-600" id="refresh-icon"></i>
+          <span>Refresh Data</span>
+        </button>
+        <a href="/scanner.html" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 transition active:scale-95">
+          <i class="fa-solid fa-camera text-xs"></i>
+          <span>Launch Scanner</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Body Container -->
+    <div class="p-4 sm:p-6 md:px-8 space-y-6">
+
+      <!-- Turnout Progress Card -->
+      <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm relative">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+          <div>
+            <span class="text-xs uppercase font-bold text-blue-600 tracking-wider">Admittance Status</span>
+            <h3 class="text-base sm:text-lg font-bold text-slate-900">Party Gate Entry Turnout</h3>
+          </div>
+          <div class="text-left sm:text-right">
+            <span id="stat-turnout-rate" class="text-2xl sm:text-3xl font-extrabold text-blue-600">0%</span>
+            <span class="text-xs text-slate-500 block">Entered Party Venue</span>
+          </div>
+        </div>
+        <!-- Clean Progress bar -->
+        <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200">
+          <div id="turnout-bar" class="bg-blue-600 h-full rounded-full transition-all duration-700" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Key Metrics KPI Cards: All icons use the uniform brand blue color -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <!-- Total Students -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-500">Total Registered</span>
+            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-users"></i>
+            </div>
+          </div>
+          <h3 id="stat-total-students" class="text-2xl font-extrabold text-slate-900">0</h3>
+          <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+            <i class="fa-solid fa-file-import text-blue-600"></i> From Excel Data
+          </p>
+        </div>
+
+        <!-- Admitted (Accepted) -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-500">Admitted at Gate</span>
+            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+          </div>
+          <h3 id="stat-total-accepted" class="text-2xl font-extrabold text-slate-900">0</h3>
+          <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+            <i class="fa-solid fa-door-open text-blue-600"></i> Inside Venue Now
+          </p>
+        </div>
+
+        <!-- Rejected -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-500">Denied / Rejected</span>
+            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-circle-xmark"></i>
+            </div>
+          </div>
+          <h3 id="stat-total-rejected" class="text-2xl font-extrabold text-slate-900">0</h3>
+          <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+            <i class="fa-solid fa-ban text-blue-600"></i> Gate Refused
+          </p>
+        </div>
+
+        <!-- Emails Sent -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-slate-500">Passes Emailed</span>
+            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center text-sm">
+              <i class="fa-solid fa-paper-plane"></i>
+            </div>
+          </div>
+          <h3 id="stat-emails-sent" class="text-2xl font-extrabold text-slate-900">0</h3>
+          <p class="text-[11px] text-slate-500 mt-1 flex items-center gap-1.5 font-medium">
+            <span id="stat-emails-pending" class="font-bold text-blue-600">0</span> pending dispatch
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Quick Action Cards: Uniform Blue Icons -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        
+        <a href="/students.html" class="bg-white hover:border-blue-300 p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 transition group">
+          <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition">
+            <i class="fa-solid fa-file-excel"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition">Import Excel Sheet</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Upload new list or download sample sheet</p>
+          </div>
+        </a>
+
+        <a href="/passes.html" class="bg-white hover:border-blue-300 p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 transition group">
+          <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition">
+            <i class="fa-solid fa-envelope-open-text"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition">Send Passes via Email</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Auto-generate QRs and dispatch emails</p>
+          </div>
+        </a>
+
+        <a href="/scanner.html" class="bg-white hover:border-blue-300 p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4 transition group sm:col-span-2 lg:col-span-1">
+          <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition">
+            <i class="fa-solid fa-qrcode"></i>
+          </div>
+          <div>
+            <h4 class="font-bold text-sm text-slate-900 group-hover:text-blue-600 transition">Gate Entry Scanner</h4>
+            <p class="text-xs text-slate-500 mt-0.5">Scan student QRs & Accept/Reject entry</p>
+          </div>
+        </a>
+
+      </div>
+
+      <!-- Tables: Department Breakdown & Recent Activity -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- Department Breakdown Table -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div>
+              <h3 class="font-bold text-sm text-slate-900">Department Turnout</h3>
+              <p class="text-xs text-slate-500 mt-0.5">Arrivals by academic branch</p>
+            </div>
+            <span class="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+              <i class="fa-solid fa-building-columns text-blue-600"></i> Branch Data
+            </span>
+          </div>
+
+          <div class="overflow-x-auto -mx-1 sm:mx-0">
+            <table class="w-full text-left text-xs min-w-[340px]">
+              <thead class="text-slate-500 border-b border-slate-200 bg-slate-50 font-semibold">
+                <tr>
+                  <th class="py-2.5 px-3">Department</th>
+                  <th class="py-2.5 px-3 text-center">Total</th>
+                  <th class="py-2.5 px-3 text-center">Admitted</th>
+                  <th class="py-2.5 px-3 text-right">Arrival %</th>
+                </tr>
+              </thead>
+              <tbody id="dept-table-body" class="divide-y divide-slate-100">
+                <tr>
+                  <td colspan="4" class="text-center py-6 text-slate-400">Loading department metrics...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent Scans Live Feed -->
+        <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+            <div class="flex items-center gap-2">
+              <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
+              <h3 class="font-bold text-sm text-slate-900">Live Gate Feed</h3>
+            </div>
+            <a href="/scanner.html" class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
+              <span>Open Scanner</span>
+              <i class="fa-solid fa-arrow-right text-[10px]"></i>
+            </a>
+          </div>
+
+          <div id="recent-scans-list" class="space-y-2.5">
+            <p class="text-xs text-slate-400 text-center py-6">Loading recent gate activity...</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script>
+    API.requireAuth();
+    API.setupNav();
+
+    async function loadDashboard() {
+      const refreshIcon = document.getElementById('refresh-icon');
+      if (refreshIcon) refreshIcon.classList.add('fa-spin');
+
+      try {
+        const res = await API.request('/api/dashboard/stats');
+        const { stats, departmentBreakdown, recentScans } = res;
+
+        // KPI stats
+        document.getElementById('stat-total-students').textContent = stats.totalStudents;
+        document.getElementById('stat-total-accepted').textContent = stats.totalAccepted;
+        document.getElementById('stat-total-rejected').textContent = stats.totalRejected;
+        document.getElementById('stat-emails-sent').textContent = stats.emailsSent;
+        document.getElementById('stat-emails-pending').textContent = stats.emailsPending;
+        document.getElementById('stat-turnout-rate').textContent = `${stats.turnoutRate}%`;
+        document.getElementById('turnout-bar').style.width = `${stats.turnoutRate}%`;
+
+        // Departments Table
+        const deptBody = document.getElementById('dept-table-body');
+        if (departmentBreakdown && departmentBreakdown.length > 0) {
+          deptBody.innerHTML = departmentBreakdown.map(d => {
+            const pct = d.total > 0 ? Math.round((d.accepted / d.total) * 100) : 0;
+            return `
+              <tr class="hover:bg-slate-50 transition">
+                <td class="py-2.5 px-3 font-semibold text-slate-800">${d.department}</td>
+                <td class="py-2.5 px-3 text-center text-slate-600">${d.total}</td>
+                <td class="py-2.5 px-3 text-center font-bold text-blue-600">${d.accepted}</td>
+                <td class="py-2.5 px-3 text-right">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${pct >= 50 ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}">
+                    ${pct}%
+                  </span>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          deptBody.innerHTML = `<tr><td colspan="4" class="text-center py-6 text-slate-400">No student records imported yet. <a href="/students.html" class="text-blue-600 underline font-semibold">Import Excel</a></td></tr>`;
+        }
+
+        // Recent Scans Feed
+        const recentList = document.getElementById('recent-scans-list');
+        if (recentScans && recentScans.length > 0) {
+          recentList.innerHTML = recentScans.map(scan => {
+            const isAccepted = scan.action === 'accepted';
+            const isRejected = scan.action === 'rejected';
+            const badgeClass = isAccepted ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                               isRejected ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                               'bg-slate-100 text-slate-800 border-slate-200';
+            const iconClass = isAccepted ? 'fa-circle-check text-emerald-600' :
+                              isRejected ? 'fa-circle-xmark text-rose-600' :
+                              'fa-triangle-exclamation text-slate-600';
+
+            const timeStr = new Date(scan.scanned_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            return `
+              <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-slate-300 transition">
+                <div class="flex items-center gap-3 overflow-hidden">
+                  <i class="fa-solid ${iconClass} text-lg shrink-0"></i>
+                  <div class="truncate">
+                    <p class="font-bold text-xs text-slate-900 truncate">${scan.student_name} <span class="font-mono font-normal text-slate-500 text-[10px]">(${scan.roll_no})</span></p>
+                    <p class="text-[10px] text-slate-500 truncate">${scan.department} • Volunteer: ${scan.volunteer_name}</p>
+                  </div>
+                </div>
+                <div class="text-right shrink-0 ml-2">
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeClass}">
+                    ${scan.action.toUpperCase()}
+                  </span>
+                  <span class="block text-[10px] text-slate-400 mt-1 font-mono">${timeStr}</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+        } else {
+          recentList.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No scan activity yet. Students will appear here as they enter.</p>`;
+        }
+
+      } catch (err) {
+        API.toast(err.message, 'error');
+      } finally {
+        if (refreshIcon) refreshIcon.classList.remove('fa-spin');
+      }
+    }
+
+    function refreshDashboard() {
+      loadDashboard();
+    }
+
+    loadDashboard();
+    setInterval(loadDashboard, 15000);
+  </script>
+</body>
+</html>

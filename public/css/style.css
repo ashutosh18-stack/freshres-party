@@ -1,0 +1,319 @@
+/* Clean Light Theme Styles & Mobile/Tablet Responsive Foundations */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* 3-Color Combination System */
+  /* 1. Base Neutrals (White / Slate) */
+  --bg-page: #f8fafc;
+  --bg-surface: #ffffff;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-light: #94a3b8;
+
+  /* 2. Primary Brand Color (Royal Blue) */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-subtle: #eff6ff;
+  --primary-border: #bfdbfe;
+
+  /* 3. Accent / Slate Steel */
+  --accent: #334155;
+  --accent-light: #f1f5f9;
+
+  --sidebar-width: 256px; /* 16rem / w-64 */
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+html, body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-main);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+code, .font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ============================================================
+   APP LAYOUT - Fixed Pinned Sidebar & Responsive Main View
+   ============================================================ */
+
+:root {
+  --sidebar-width: 256px; /* 16rem / w-64 */
+}
+
+/* Sidebar: Permanently pinned to the viewport height on all devices */
+#sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  position: fixed !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+  z-index: 40;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+/* Top internal section (Brand + Navigation links) scrolls independently if screen is short */
+#sidebar > div:first-child {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+/* Bottom internal section (User Profile & Sign Out) is always anchored at bottom */
+#sidebar > div:last-child {
+  flex-shrink: 0;
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* Main Content: Takes remaining width and scrolls independently */
+#main-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  box-sizing: border-box;
+}
+
+/* ── Desktop (≥ 1024px): sidebar is pinned at left: 0, content has left-margin ── */
+@media (min-width: 1024px) {
+  #sidebar {
+    transform: translateX(0) !important;
+    box-shadow: none !important;
+  }
+
+  #main-content {
+    margin-left: var(--sidebar-width) !important;
+    width: calc(100% - var(--sidebar-width)) !important;
+    padding-top: 0 !important;
+  }
+
+  #sidebar-backdrop { display: none !important; }
+  #tablet-sidebar-toggle { display: none !important; }
+  #mobile-menu-toggle { display: none !important; }
+  .mobile-top-header { display: none !important; }
+}
+
+/* ── Tablet (768px–1023px): sidebar fixed, open by default, can be toggled ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  #sidebar {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.08);
+    z-index: 42;
+  }
+
+  #sidebar.sidebar-hidden {
+    transform: translateX(calc(-1 * var(--sidebar-width)));
+    box-shadow: none;
+  }
+
+  #main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-top: 0;
+  }
+
+  #main-content.sidebar-hidden-content {
+    margin-left: 0;
+    width: 100%;
+    /* Leave room at top for the floating menu toggle button */
+    padding-top: 3.75rem;
+  }
+
+  #tablet-sidebar-toggle {
+    display: flex;
+    position: fixed;
+    top: 1rem;
+    left: calc(var(--sidebar-width) + 0.85rem);
+    z-index: 45;
+    width: 2.5rem;
+    height: 2.5rem;
+    background: white;
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.12);
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  #tablet-sidebar-toggle:hover {
+    color: var(--primary);
+    border-color: var(--primary-border);
+    transform: scale(1.05);
+  }
+
+  body.sidebar-is-hidden #tablet-sidebar-toggle {
+    left: 1rem;
+  }
+
+  #sidebar-backdrop { display: none !important; }
+  .mobile-top-header { display: none !important; }
+}
+
+/* ── Mobile (< 768px): sidebar hidden by default, fixed full-height overlay ── */
+@media (max-width: 767px) {
+  #sidebar {
+    transform: translateX(calc(-1 * var(--sidebar-width)));
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.15);
+    z-index: 50;
+  }
+
+  #sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .mobile-top-header {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 3.5rem !important;
+    z-index: 45 !important;
+    background: #ffffff !important;
+    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.06) !important;
+  }
+
+  #main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    padding-top: 3.5rem !important;
+  }
+
+  #tablet-sidebar-toggle { display: none !important; }
+}
+
+/* ============================================================
+   Card System
+   ============================================================ */
+.glass-card, .clean-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+}
+
+.glass-card-hover:hover, .clean-card-hover:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Icon utility */
+.icon-brand { color: var(--primary) !important; }
+.icon-neutral { color: var(--text-muted) !important; }
+
+/* ============================================================
+   Scanner Viewfinder & Laser (Square Target)
+   ============================================================ */
+#qr-reader {
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#qr-reader video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 1rem !important;
+}
+
+#qr-reader__scan_region {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+#qr-reader__dashboard {
+  display: none !important;
+}
+
+@keyframes laserSweep {
+  0%   { top: 5%; opacity: 0.85; }
+  50%  { top: 95%; opacity: 1; }
+  100% { top: 5%; opacity: 0.85; }
+}
+
+.laser-line {
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #2563eb, #60a5fa, #2563eb, transparent);
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.8), 0 0 20px rgba(59, 130, 246, 0.6);
+  animation: laserSweep 2s infinite ease-in-out;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ============================================================
+   Responsive Table
+   ============================================================ */
+.responsive-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background: #ffffff;
+}
+
+/* ============================================================
+   Scrollbars
+   ============================================================ */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* ============================================================
+   Mobile form zoom prevention
+   ============================================================ */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* ============================================================
+   Print layout
+   ============================================================ */
+@media print {
+  body * { visibility: hidden; }
+  #printablePass, #printablePass * { visibility: visible; }
+  #printablePass { position: absolute; left: 0; top: 0; width: 100%; }
+}

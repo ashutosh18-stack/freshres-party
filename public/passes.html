@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR Pass Generator & Email Center - Fresher Fiesta 2026</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased" style="display:flex; flex-direction:row; min-height:100vh;">
+
+  <!-- Mobile Top Header (hidden tablet+ via CSS) -->
+  <header class="mobile-top-header" style="display:none; position:fixed; top:0; left:0; right:0; z-index:60; background:#fff; border-bottom:1px solid #e2e8f0; padding:0.875rem 1rem; align-items:center; justify-content:space-between; box-shadow:0 1px 4px rgba(15,23,42,0.07);">
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <div style="width:2.25rem; height:2.25rem; border-radius:0.75rem; background:#2563eb; display:flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-ticket-simple" style="color:#fff; font-size:0.85rem;"></i>
+      </div>
+      <div>
+        <span style="font-weight:800; font-size:0.95rem; color:#0f172a; display:block; line-height:1.2;">Fresher Fiesta</span>
+        <span style="font-size:0.65rem; color:#64748b; font-weight:500;">QR Passes & Email</span>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      
+      <button id="mobile-menu-toggle" style="padding:0.5rem; background:none; border:none; cursor:pointer; color:#475569;" aria-label="Toggle Navigation">
+        <i class="fa-solid fa-bars" style="font-size:1.25rem;"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="flex flex-col justify-between bg-white border-r border-slate-200">
+    <div>
+      <!-- Brand -->
+      <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
+          <i class="fa-solid fa-ticket-simple text-base"></i>
+        </div>
+        <div>
+          <h2 class="font-extrabold text-base text-slate-900 leading-none">Fresher Fiesta</h2>
+          <span class="text-[11px] text-slate-500 font-medium">Entry Gate Platform</span>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="p-4 space-y-1.5 text-sm font-medium">
+        <a href="/dashboard.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-chart-pie w-5 text-slate-500 text-center"></i>
+          <span class="">Dashboard</span>
+        </a>
+        <a href="/students.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-users-viewfinder w-5 text-slate-500 text-center"></i>
+          <span class="">Student Directory</span>
+        </a>
+        <a href="/passes.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 transition admin-only">
+          <i class="fa-solid fa-envelope-open-text w-5 text-blue-600 text-center"></i>
+          <span class="font-semibold">QR Passes & Email</span>
+        </a>
+        <a href="/scanner.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-qrcode w-5 text-slate-500 text-center"></i>
+          <span class="">Gate Scanner</span>
+        </a>
+        <a href="/volunteers.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition admin-only">
+          <i class="fa-solid fa-users-gear w-5 text-slate-500 text-center"></i>
+          <span class="">Gate Volunteers</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- User Profile & Logout -->
+    <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+      <div class="flex items-center justify-between mb-3 px-1">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div id="nav-user-avatar" class="w-8 h-8 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-xs shrink-0">A</div>
+          <div class="overflow-hidden">
+            <p id="nav-user-name" class="text-xs font-bold text-slate-900 truncate">Admin</p>
+            <span id="nav-user-role" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">ADMIN</span>
+          </div>
+        </div>
+      </div>
+      <button id="btn-logout" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition">
+        <i class="fa-solid fa-arrow-right-from-bracket text-slate-500"></i>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main id="main-content" class="flex flex-col min-w-0 overflow-y-auto" style="flex:1;">
+
+    <!-- Top Bar -->
+    <div class="p-4 sm:p-6 md:px-8 bg-white border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div>
+        <h1 class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">QR Pass & Automated Email Dispatch Center</h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Unique QR passes generated for imported students and automated email dispatch</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5">
+        <button onclick="openSmtpModal()" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-300 shadow-sm flex items-center gap-2 transition active:scale-95">
+          <i class="fa-solid fa-gear text-blue-600"></i>
+          <span>SMTP / Email Setup</span>
+        </button>
+        <button onclick="regenerateAllQrs()" class="px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-semibold border border-blue-200 shadow-sm flex items-center gap-2 transition active:scale-95">
+          <i class="fa-solid fa-arrows-rotate text-blue-600"></i>
+          <span>Verify All QRs</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Body Container -->
+    <div class="p-4 sm:p-6 md:px-8 space-y-6">
+
+      <!-- Dispatch Control Banner -->
+      <div class="bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div class="space-y-1 max-w-xl">
+            <span class="text-xs uppercase font-bold text-blue-600 tracking-wider">Automated Email Campaign</span>
+            <h3 class="text-base sm:text-lg font-bold text-slate-900">Broadcast VIP Passes to Registered Students</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Each student receives a personalized email with their unique event QR code pass, Roll No, PRN, and entrance guidelines.
+            </p>
+          </div>
+
+          <!-- Send All Action Buttons -->
+          <div class="flex flex-wrap items-center gap-3">
+            <button 
+              id="btnStartBatch"
+              onclick="startBulkDispatch()"
+              class="w-full sm:w-auto px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-2.5 transition active:scale-95"
+            >
+              <i class="fa-solid fa-paper-plane text-sm"></i>
+              <span>Send All Pending Passes via Email</span>
+            </button>
+            <button 
+              id="btnStopBatch"
+              onclick="stopBulkDispatch()"
+              class="hidden w-full sm:w-auto px-4 py-3 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2"
+            >
+              <i class="fa-solid fa-pause"></i>
+              <span>Pause Dispatch</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dispatch Stats Counters: Unified clean styling -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-100">
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-[10px] text-slate-500 uppercase font-semibold">Total Students</span>
+            <p id="stat-total" class="text-xl font-extrabold text-slate-900 mt-0.5">0</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-[10px] text-slate-500 uppercase font-semibold">Emails Sent</span>
+            <p id="stat-sent" class="text-xl font-extrabold text-blue-600 mt-0.5">0</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-[10px] text-slate-500 uppercase font-semibold">Pending Queue</span>
+            <p id="stat-pending" class="text-xl font-extrabold text-slate-700 mt-0.5">0</p>
+          </div>
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <span class="text-[10px] text-slate-500 uppercase font-semibold">Failed Attempts</span>
+            <p id="stat-failed" class="text-xl font-extrabold text-rose-600 mt-0.5">0</p>
+          </div>
+        </div>
+
+        <!-- Live Progress Bar & Console (shows while dispatching) -->
+        <div id="dispatchProgressCard" class="hidden mt-6 pt-4 border-t border-slate-100 space-y-3">
+          <div class="flex items-center justify-between text-xs font-semibold">
+            <span id="dispatchStatusText" class="text-blue-700 flex items-center gap-2">
+              <i class="fa-solid fa-circle-notch fa-spin text-blue-600"></i> Dispatching emails in batches...
+            </span>
+            <span id="dispatchPercentText" class="text-slate-800 font-mono">0%</span>
+          </div>
+
+          <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+            <div id="dispatchProgressBar" class="bg-blue-600 h-full rounded-full transition-all duration-300" style="width: 0%"></div>
+          </div>
+
+          <!-- Mini Terminal Output -->
+          <div id="dispatchLog" class="p-3 bg-slate-900 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-200 max-h-40 overflow-y-auto space-y-1">
+            <p class="text-slate-400">Dispatch log initialized...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Passes Filter & Search Toolbar -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          <button onclick="setMailFilter('all')" id="filter-all" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 text-white transition shadow-sm shrink-0">All Passes</button>
+          <button onclick="setMailFilter('pending')" id="filter-pending" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition shrink-0">Pending Mail</button>
+          <button onclick="setMailFilter('sent')" id="filter-sent" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition shrink-0">Sent</button>
+          <button onclick="setMailFilter('failed')" id="filter-failed" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition shrink-0">Failed</button>
+        </div>
+        <div class="relative w-full sm:w-72">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-xs text-blue-600"></i>
+          <input 
+            type="text" 
+            id="searchInput" 
+            placeholder="Search passes by Name / Roll..." 
+            class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-sm"
+          >
+        </div>
+      </div>
+
+      <!-- Passes Cards Grid -->
+      <div id="passesContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="col-span-full text-center py-12 text-slate-400">
+          <i class="fa-solid fa-circle-notch fa-spin text-2xl mb-2 text-blue-600"></i>
+          <p class="text-xs">Loading student passes...</p>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="flex items-center justify-between text-xs text-slate-500 pt-2">
+        <span id="pageInfo">Showing page 1</span>
+        <div class="flex items-center gap-2">
+          <button id="btnPrev" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-medium disabled:opacity-40 shadow-sm">Prev</button>
+          <button id="btnNext" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-medium disabled:opacity-40 shadow-sm">Next</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Pass Modal -->
+  <div id="passModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-6 border border-slate-200 relative text-center shadow-xl">
+      <button onclick="closePassModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div class="space-y-4">
+        <div class="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider border border-blue-200">
+          Official VIP Pass
+        </div>
+        <h3 class="text-lg font-extrabold text-slate-900">Fresher Fiesta 2026</h3>
+        
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl inline-block shadow-sm">
+          <img id="modalQrImg" src="" alt="Pass QR Code" class="w-48 h-48 block mx-auto">
+        </div>
+
+        <div>
+          <span id="modalToken" class="font-mono text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg">TOKEN</span>
+        </div>
+
+        <div class="bg-slate-50 rounded-xl p-3 text-left space-y-1.5 text-xs border border-slate-200">
+          <p><strong class="text-slate-500">Name:</strong> <span id="modalName" class="text-slate-900 font-bold"></span></p>
+          <p><strong class="text-slate-500">Roll No:</strong> <span id="modalRoll" class="text-slate-800 font-mono"></span></p>
+          <p><strong class="text-slate-500">PRN No:</strong> <span id="modalPrn" class="text-slate-800 font-mono"></span></p>
+          <p><strong class="text-slate-500">Department:</strong> <span id="modalDept" class="text-slate-800"></span></p>
+          <p><strong class="text-slate-500">Email:</strong> <span id="modalEmail" class="text-slate-800"></span></p>
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center justify-center gap-2">
+        <a id="downloadQrBtn" href="#" download="fresher-pass-qr.png" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm">
+          <i class="fa-solid fa-download"></i> Download QR
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Student Details & Email Modal (Admin Only) -->
+  <div id="editModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-6 border border-slate-200 relative shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-user-pen text-blue-600"></i> Edit Student Details & Email
+          </h3>
+          <p class="text-[11px] text-slate-500 mt-0.5">Admin authority to update email, personal info, and QR pass</p>
+        </div>
+        <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="editStudentForm" class="space-y-4 text-xs">
+        <input type="hidden" id="editStudentId">
+
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+          <span class="text-slate-500 text-[11px]">Active Pass Token:</span>
+          <span id="editTokenDisplay" class="font-mono text-xs font-bold text-blue-700">FP26-XXXXX</span>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Full Student Name *</label>
+          <input type="text" id="editName" required class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+        </div>
+
+        <div class="p-3.5 rounded-xl bg-blue-50 border border-blue-200 space-y-1">
+          <label class="block font-bold text-blue-900 flex items-center gap-1.5">
+            <i class="fa-regular fa-envelope text-blue-600"></i> Student Email Address * (Pass Recipient)
+          </label>
+          <input type="email" id="editEmail" required class="w-full px-3 py-2.5 bg-white border border-blue-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-blue-600">
+          <p class="text-[10px] text-blue-700">Updating this address changes where the QR entry pass is emailed.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Roll Number *</label>
+            <input type="text" id="editRoll" required class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 font-mono">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">PRN Number *</label>
+            <input type="text" id="editPrn" required class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Department / Branch *</label>
+            <input type="text" id="editDept" required class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Phone Number</label>
+            <input type="text" id="editPhone" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900">
+          </div>
+        </div>
+
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+          <label class="flex items-center gap-2 text-slate-800 cursor-pointer">
+            <input type="checkbox" id="editResendEmail" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
+            <span>✉️ <strong>Resend VIP Pass email to this address immediately</strong></span>
+          </label>
+          <label class="flex items-center gap-2 text-slate-600 cursor-pointer text-[11px]">
+            <input type="checkbox" id="editNewToken" class="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
+            <span>🎟️ Issue a brand new QR Token (invalidates previous QR code pass)</span>
+          </label>
+        </div>
+
+        <div class="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+          <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold">Cancel</button>
+          <button type="submit" id="btnEditSubmit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Save & Apply Updates</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- PIN Verification Modal (guards SMTP form) -->
+  <div id="pinModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-xs p-6 border border-slate-200 shadow-xl text-center">
+      <div class="w-14 h-14 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center mx-auto mb-4">
+        <i class="fa-solid fa-shield-halved text-2xl text-blue-600"></i>
+      </div>
+      <h3 class="text-base font-extrabold text-slate-900 mb-1">Admin Verification</h3>
+      <p class="text-xs text-slate-500 mb-5">Enter your 6-digit security PIN to access SMTP settings.</p>
+
+      <!-- PIN dot display -->
+      <div class="flex justify-center gap-3 mb-5" id="pinDots">
+        <span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-white transition-all duration-150" id="pd-0"></span>
+        <span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-white transition-all duration-150" id="pd-1"></span>
+        <span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-white transition-all duration-150" id="pd-2"></span>
+        <span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-white transition-all duration-150" id="pd-3"></span>
+        <span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-white transition-all duration-150" id="pd-4"></span>
+        <span class="w-3.5 h-3.5 rounded-full border-2 border-slate-300 bg-white transition-all duration-150" id="pd-5"></span>
+      </div>
+
+      <!-- Numpad -->
+      <div class="grid grid-cols-3 gap-2 mb-4">
+        <button onclick="pinKey('1')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">1</button>
+        <button onclick="pinKey('2')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">2</button>
+        <button onclick="pinKey('3')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">3</button>
+        <button onclick="pinKey('4')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">4</button>
+        <button onclick="pinKey('5')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">5</button>
+        <button onclick="pinKey('6')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">6</button>
+        <button onclick="pinKey('7')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">7</button>
+        <button onclick="pinKey('8')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">8</button>
+        <button onclick="pinKey('9')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">9</button>
+        <button onclick="pinClear()" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-200 hover:border-rose-300 text-rose-500 font-bold text-sm transition active:scale-95"><i class="fa-solid fa-delete-left"></i></button>
+        <button onclick="pinKey('0')" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-800 font-bold text-base transition active:scale-95">0</button>
+        <button onclick="pinCancel()" class="pin-key py-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-500 font-bold text-xs transition active:scale-95">Cancel</button>
+      </div>
+
+      <p id="pinError" class="text-xs text-rose-600 font-semibold hidden mt-1">Incorrect PIN. Try again.</p>
+    </div>
+  </div>
+
+  <!-- SMTP Settings Modal -->
+  <div id="smtpModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-6 border border-slate-200 relative shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-gear text-blue-600"></i> Email & SMTP Settings
+        </h3>
+        <button onclick="closeSmtpModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="smtpForm" class="space-y-4 text-xs">
+        <div class="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-[11px] leading-relaxed">
+          <p><strong>💡 Email Delivery Info:</strong> If SMTP credentials are empty, the platform automatically runs in <strong>Simulation Mode</strong> (logs and verifies without failing). To send real emails via Gmail or your college SMTP server, configure below.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">SMTP Host</label>
+            <input type="text" id="smtpHost" placeholder="smtp.gmail.com" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">SMTP Port</label>
+            <input type="number" id="smtpPort" placeholder="587" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">SMTP Username / Email</label>
+            <input type="text" id="smtpUser" placeholder="fresherparty@gmail.com" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">SMTP Password / App Key</label>
+            <input type="password" id="smtpPass" placeholder="••••••••" class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">From Sender Address</label>
+          <input type="text" id="smtpFrom" placeholder='"Fresher Fiesta 2026" <noreply@fresherfiesta.com>' class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+        </div>
+
+        <div class="pt-3 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100">
+          <button type="button" onclick="testSmtp()" id="btnTestSmtp" class="w-full sm:w-auto px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 rounded-xl font-semibold flex items-center justify-center gap-1.5 shadow-sm">
+            <i class="fa-solid fa-bolt text-blue-600"></i> Test Connection
+          </button>
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button type="button" onclick="closeSmtpModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold">Cancel</button>
+            <button type="submit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm">
+              Save Settings
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    API.requireAuth(true);
+    API.setupNav();
+
+    let currentPage = 1;
+    let currentFilter = 'all';
+    let isDispatching = false;
+
+    async function loadStats() {
+      try {
+        const res = await API.request('/api/email/stats');
+        const s = res.stats;
+        document.getElementById('stat-total').textContent = s.total || 0;
+        document.getElementById('stat-sent').textContent = s.sent || 0;
+        document.getElementById('stat-pending').textContent = s.pending || 0;
+        document.getElementById('stat-failed').textContent = s.failed || 0;
+      } catch (e) {
+        console.error('Stats error:', e);
+      }
+    }
+
+    async function loadPasses() {
+      const search = document.getElementById('searchInput').value.trim();
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: 12,
+        search,
+        mail_status: currentFilter
+      });
+
+      const container = document.getElementById('passesContainer');
+
+      try {
+        const res = await API.request(`/api/students?${params.toString()}`);
+        const students = res.students;
+
+        document.getElementById('pageInfo').textContent = `Page ${res.pagination.page} of ${res.pagination.totalPages} (${res.pagination.total} passes)`;
+        document.getElementById('btnPrev').disabled = res.pagination.page <= 1;
+        document.getElementById('btnNext').disabled = res.pagination.page >= res.pagination.totalPages;
+
+        if (!students || students.length === 0) {
+          container.innerHTML = `
+            <div class="col-span-full text-center py-12 text-slate-400">
+              <i class="fa-solid fa-ticket-simple text-3xl mb-2 text-slate-300"></i>
+              <p class="text-sm">No student passes found for this filter.</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = students.map(s => {
+          const isSent = s.mail_status === 'sent';
+          const isFailed = s.mail_status === 'failed';
+          const mailBadge = isSent 
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">SENT</span>`
+            : isFailed 
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">FAILED</span>`
+            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">PENDING MAIL</span>`;
+
+          return `
+            <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm flex flex-col justify-between hover:border-blue-300 transition">
+              <div>
+                <div class="flex items-start justify-between gap-3 mb-3">
+                  <div>
+                    <h4 class="font-bold text-sm text-slate-900">${s.name}</h4>
+                    <p class="text-[11px] text-slate-500">${s.department}</p>
+                  </div>
+                  ${mailBadge}
+                </div>
+
+                <div class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-200 mb-3">
+                  <div onclick='openPassModal(${JSON.stringify(s)})' class="cursor-pointer bg-white p-1 rounded-lg border border-slate-200 shadow-sm shrink-0 hover:scale-105 transition">
+                    <img src="${s.qr_code_image}" alt="QR" class="w-14 h-14 block">
+                  </div>
+                  <div class="min-w-0">
+                    <p class="font-mono text-xs text-blue-700 font-bold">${s.roll_no}</p>
+                    <p class="font-mono text-[10px] text-slate-500 truncate">PRN: ${s.prn_no}</p>
+                    <p class="text-[10px] text-slate-500 truncate">${s.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span class="font-mono text-[10px] text-blue-700 font-semibold truncate max-w-[120px]">${s.qr_token}</span>
+                <div class="flex items-center gap-1.5">
+                  <button onclick='openEditModal(${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Edit Student Details & Email" class="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 transition">
+                    <i class="fa-solid fa-pen-to-square text-xs"></i>
+                  </button>
+                  <a href="/api/email/preview/${s.id}" target="_blank" title="Preview Email HTML" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 transition">
+                    <i class="fa-regular fa-eye text-xs"></i>
+                  </a>
+                  <button onclick="sendSinglePass(${s.id}, '${s.name}')" title="Send Email" class="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition flex items-center gap-1 text-[11px] shadow-sm">
+                    <i class="fa-regular fa-paper-plane text-xs"></i>
+                    <span>Send</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+      } catch (e) {
+        API.toast(e.message, 'error');
+      }
+    }
+
+    function setMailFilter(filter) {
+      currentFilter = filter;
+      ['all', 'pending', 'sent', 'failed'].forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (f === filter) {
+          btn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 text-white transition shadow-sm shrink-0';
+        } else {
+          btn.className = 'px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 transition shrink-0';
+        }
+      });
+      currentPage = 1;
+      loadPasses();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', () => {
+      currentPage = 1;
+      loadPasses();
+    });
+
+    document.getElementById('btnPrev').addEventListener('click', () => {
+      if (currentPage > 1) { currentPage--; loadPasses(); }
+    });
+    document.getElementById('btnNext').addEventListener('click', () => {
+      currentPage++; loadPasses();
+    });
+
+    function openPassModal(student) {
+      document.getElementById('modalQrImg').src = student.qr_code_image;
+      document.getElementById('modalToken').textContent = student.qr_token;
+      document.getElementById('modalName').textContent = student.name;
+      document.getElementById('modalRoll').textContent = student.roll_no;
+      document.getElementById('modalPrn').textContent = student.prn_no;
+      document.getElementById('modalDept').textContent = student.department;
+      document.getElementById('modalEmail').textContent = student.email;
+      
+      const downloadBtn = document.getElementById('downloadQrBtn');
+      downloadBtn.href = student.qr_code_image;
+      downloadBtn.download = `pass-${student.roll_no}-qr.png`;
+
+      document.getElementById('passModal').classList.remove('hidden');
+    }
+
+    function closePassModal() {
+      document.getElementById('passModal').classList.add('hidden');
+    }
+
+    function openEditModal(student) {
+      document.getElementById('editStudentId').value = student.id;
+      document.getElementById('editTokenDisplay').textContent = student.qr_token || 'N/A';
+      document.getElementById('editName').value = student.name || '';
+      document.getElementById('editEmail').value = student.email || '';
+      document.getElementById('editRoll').value = student.roll_no || '';
+      document.getElementById('editPrn').value = student.prn_no || '';
+      document.getElementById('editDept').value = student.department || '';
+      document.getElementById('editPhone').value = student.phone || '';
+      document.getElementById('editResendEmail').checked = false;
+      document.getElementById('editNewToken').checked = false;
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    if (document.getElementById('editStudentForm')) {
+      document.getElementById('editStudentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('editStudentId').value;
+        const payload = {
+          name: document.getElementById('editName').value,
+          email: document.getElementById('editEmail').value,
+          roll_no: document.getElementById('editRoll').value,
+          prn_no: document.getElementById('editPrn').value,
+          department: document.getElementById('editDept').value,
+          phone: document.getElementById('editPhone').value,
+          resend_email: document.getElementById('editResendEmail').checked,
+          issue_new_token: document.getElementById('editNewToken').checked
+        };
+
+        const btn = document.getElementById('btnEditSubmit');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Saving & Updating QR...`;
+
+        try {
+          const res = await API.request(`/api/students/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+          API.toast(res.message, 'success');
+          closeEditModal();
+          loadStats();
+          loadPasses();
+        } catch (err) {
+          API.toast(err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Save & Apply Updates</span>`;
+        }
+      });
+    }
+
+    async function sendSinglePass(id, name) {
+      API.toast(`Sending pass to ${name}...`, 'info');
+      try {
+        const res = await API.request(`/api/email/send/${id}`, { method: 'POST' });
+        API.toast(res.message, 'success');
+        loadStats();
+        loadPasses();
+      } catch (err) {
+        API.toast(err.message, 'error');
+      }
+    }
+
+    async function startBulkDispatch() {
+      if (isDispatching) return;
+      isDispatching = true;
+
+      const btnStart = document.getElementById('btnStartBatch');
+      const btnStop = document.getElementById('btnStopBatch');
+      const progressCard = document.getElementById('dispatchProgressCard');
+      const logBox = document.getElementById('dispatchLog');
+      const bar = document.getElementById('dispatchProgressBar');
+      const percentText = document.getElementById('dispatchPercentText');
+
+      btnStart.classList.add('hidden');
+      btnStop.classList.remove('hidden');
+      progressCard.classList.remove('hidden');
+      logBox.innerHTML = '<p class="text-blue-400">⚡ Starting Automated Batch Dispatch...</p>';
+
+      let totalSent = 0;
+      let totalFailed = 0;
+
+      while (isDispatching) {
+        try {
+          const res = await API.request('/api/email/send-batch', {
+            method: 'POST',
+            body: JSON.stringify({ batch_size: 5, status: 'pending' })
+          });
+
+          if (res.batchCount === 0) {
+            logBox.innerHTML += `<p class="text-emerald-400 font-bold">🎉 ALL PASSES DISPATCHED! Queue is now empty.</p>`;
+            bar.style.width = '100%';
+            percentText.textContent = '100%';
+            break;
+          }
+
+          totalSent += res.sentCount;
+          totalFailed += res.failedCount;
+
+          res.logs.forEach(item => {
+            const time = new Date().toLocaleTimeString();
+            if (item.status === 'sent') {
+              logBox.innerHTML += `<p class="text-slate-200">[${time}] ✉️ Sent: <strong>${item.name}</strong> (${item.email})</p>`;
+            } else {
+              logBox.innerHTML += `<p class="text-rose-400">[${time}] ❌ Failed: ${item.name} - ${item.error}</p>`;
+            }
+          });
+
+          logBox.scrollTop = logBox.scrollHeight;
+          loadStats();
+
+          await new Promise(r => setTimeout(r, 1200));
+
+        } catch (err) {
+          logBox.innerHTML += `<p class="text-rose-400">⚠️ Error in batch: ${err.message}</p>`;
+          break;
+        }
+      }
+
+      isDispatching = false;
+      btnStart.classList.remove('hidden');
+      btnStop.classList.add('hidden');
+      loadStats();
+      loadPasses();
+    }
+
+    function stopBulkDispatch() {
+      isDispatching = false;
+      const logBox = document.getElementById('dispatchLog');
+      logBox.innerHTML += '<p class="text-amber-400 font-bold">⏸️ Dispatch paused by user.</p>';
+      document.getElementById('btnStartBatch').classList.remove('hidden');
+      document.getElementById('btnStopBatch').classList.add('hidden');
+    }
+
+    async function regenerateAllQrs() {
+      API.toast('Verifying QR codes for all students...', 'info');
+      try {
+        const res = await API.request('/api/students/generate-all-qrs', { method: 'POST' });
+        API.toast(res.message, 'success');
+        loadPasses();
+      } catch (err) {
+        API.toast(err.message, 'error');
+      }
+    }
+
+    function openSmtpModal() {
+      // Show PIN modal first; SMTP opens only after correct PIN
+      _pinEntry = '';
+      _pinUpdateDots();
+      document.getElementById('pinError').classList.add('hidden');
+      document.getElementById('pinModal').classList.remove('hidden');
+    }
+    function closeSmtpModal() {
+      document.getElementById('smtpModal').classList.add('hidden');
+    }
+
+    /* ---- PIN logic ---- */
+    const _SMTP_PIN = '969396';
+    let _pinEntry = '';
+
+    function _pinUpdateDots() {
+      for (let i = 0; i < 6; i++) {
+        const dot = document.getElementById('pd-' + i);
+        if (i < _pinEntry.length) {
+          dot.classList.add('bg-blue-600', 'border-blue-600');
+          dot.classList.remove('bg-white', 'border-slate-300');
+        } else {
+          dot.classList.remove('bg-blue-600', 'border-blue-600');
+          dot.classList.add('bg-white', 'border-slate-300');
+        }
+      }
+    }
+
+    function pinKey(digit) {
+      if (_pinEntry.length >= 6) return;
+      _pinEntry += digit;
+      _pinUpdateDots();
+      if (_pinEntry.length === 6) {
+        setTimeout(() => {
+          if (_pinEntry === _SMTP_PIN) {
+            document.getElementById('pinModal').classList.add('hidden');
+            document.getElementById('pinError').classList.add('hidden');
+            fetchSmtpSettings();
+            document.getElementById('smtpModal').classList.remove('hidden');
+          } else {
+            document.getElementById('pinError').classList.remove('hidden');
+            // shake animation
+            const box = document.getElementById('pinDots');
+            box.classList.add('animate-bounce');
+            setTimeout(() => box.classList.remove('animate-bounce'), 400);
+            _pinEntry = '';
+            _pinUpdateDots();
+          }
+        }, 150);
+      }
+    }
+
+    function pinClear() {
+      _pinEntry = _pinEntry.slice(0, -1);
+      _pinUpdateDots();
+      document.getElementById('pinError').classList.add('hidden');
+    }
+
+    function pinCancel() {
+      _pinEntry = '';
+      _pinUpdateDots();
+      document.getElementById('pinModal').classList.add('hidden');
+      document.getElementById('pinError').classList.add('hidden');
+    }
+
+    async function fetchSmtpSettings() {
+      try {
+        const res = await API.request('/api/settings');
+        const s = res.settings;
+        document.getElementById('smtpHost').value = s.smtp_host || '';
+        document.getElementById('smtpPort').value = s.smtp_port || '';
+        document.getElementById('smtpUser').value = s.smtp_user || '';
+        document.getElementById('smtpPass').value = s.smtp_pass || '';
+        document.getElementById('smtpFrom').value = s.smtp_from || '';
+      } catch (e) {}
+    }
+
+    document.getElementById('smtpForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        smtp_host: document.getElementById('smtpHost').value,
+        smtp_port: document.getElementById('smtpPort').value,
+        smtp_user: document.getElementById('smtpUser').value,
+        smtp_pass: document.getElementById('smtpPass').value,
+        smtp_from: document.getElementById('smtpFrom').value
+      };
+
+      try {
+        const res = await API.request('/api/settings', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        API.toast(res.message, 'success');
+        closeSmtpModal();
+      } catch (err) {
+        API.toast(err.message, 'error');
+      }
+    });
+
+    async function testSmtp() {
+      const btn = document.getElementById('btnTestSmtp');
+      btn.disabled = true;
+      btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Testing...`;
+
+      const payload = {
+        smtp_host: document.getElementById('smtpHost').value,
+        smtp_port: document.getElementById('smtpPort').value,
+        smtp_user: document.getElementById('smtpUser').value,
+        smtp_pass: document.getElementById('smtpPass').value
+      };
+
+      try {
+        const res = await API.request('/api/email/test-smtp', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        API.toast(res.message, 'success');
+      } catch (err) {
+        API.toast(`SMTP Test Failed: ${err.message}`, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-bolt text-blue-600"></i> Test Connection`;
+      }
+    }
+
+    loadStats();
+    loadPasses();
+  </script>
+</body>
+</html>

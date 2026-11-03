@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fresher Fiesta 2026 - Entry Pass Portal</title>
+  <script src="/js/api.js"></script>
+</head>
+<body style="background:#f8fafc; color:#0f172a; display:flex; align-items:center; justify-content:center; height:100vh; font-family:'Plus Jakarta Sans', system-ui, sans-serif;">
+  <div style="text-align:center;">
+    <p style="font-weight:600; font-size:15px; color:#475569;">Loading Fresher Fiesta Portal...</p>
+  </div>
+  <script>
+    const token = API.getToken();
+    const user = API.getUser();
+    if (token && user) {
+      if (user.role === 'admin') {
+        window.location.href = '/dashboard.html';
+      } else {
+        window.location.href = '/scanner.html';
+      }
+    } else {
+      window.location.href = '/login.html';
+    }
+  </script>
+</body>
+</html>

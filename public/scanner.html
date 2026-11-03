@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gate Entry QR Scanner - Fresher Fiesta 2026</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+  <!-- HTML5 QR Code Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased" style="display:flex; flex-direction:row; min-height:100vh;">
+
+  <!-- Mobile Top Header (hidden tablet+ via CSS) -->
+  <header class="mobile-top-header" style="display:none; position:fixed; top:0; left:0; right:0; z-index:60; background:#fff; border-bottom:1px solid #e2e8f0; padding:0.875rem 1rem; align-items:center; justify-content:space-between; box-shadow:0 1px 4px rgba(15,23,42,0.07);">
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <div style="width:2.25rem; height:2.25rem; border-radius:0.75rem; background:#2563eb; display:flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-qrcode" style="color:#fff; font-size:0.85rem;"></i>
+      </div>
+      <div>
+        <span style="font-weight:800; font-size:0.95rem; color:#0f172a; display:block; line-height:1.2;">Fresher Fiesta</span>
+        <span style="font-size:0.65rem; color:#64748b; font-weight:500;">Gate Scanner</span>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <a href="/volunteers.html" title="Volunteers" style="padding:0.5rem; display:flex; align-items:center; justify-content:center; border-radius:0.625rem; background:#f1f5f9; color:#2563eb;"><i class="fa-solid fa-users text-xs"></i></a>
+      <button onclick="toggleAudio()" id="btnMobileSound" style="padding:0.5rem; border-radius:0.625rem; background:#f1f5f9; border:none; cursor:pointer;" aria-label="Toggle Sound"><i class="fa-solid fa-volume-high" id="mobileSoundIcon" style="font-size:0.75rem; color:#2563eb;"></i></button>
+      <button id="mobile-menu-toggle" style="padding:0.5rem; background:none; border:none; cursor:pointer; color:#475569;" aria-label="Toggle Navigation">
+        <i class="fa-solid fa-bars" style="font-size:1.25rem;"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="flex flex-col justify-between bg-white border-r border-slate-200">
+    <div>
+      <!-- Brand -->
+      <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
+          <i class="fa-solid fa-qrcode text-base"></i>
+        </div>
+        <div>
+          <h2 class="font-extrabold text-base text-slate-900 leading-none">Fresher Fiesta</h2>
+          <span class="text-[11px] text-slate-500 font-medium">Entry Gate Platform</span>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="p-4 space-y-1.5 text-sm font-medium">
+        <a href="/dashboard.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-chart-pie w-5 text-slate-500 text-center"></i>
+          <span class="">Dashboard</span>
+        </a>
+        <a href="/students.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-users-viewfinder w-5 text-slate-500 text-center"></i>
+          <span class="">Student Directory</span>
+        </a>
+        <a href="/passes.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition admin-only">
+          <i class="fa-solid fa-envelope-open-text w-5 text-slate-500 text-center"></i>
+          <span class="">QR Passes & Email</span>
+        </a>
+        <a href="/scanner.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 transition">
+          <i class="fa-solid fa-qrcode w-5 text-blue-600 text-center"></i>
+          <span class="font-semibold">Gate Scanner</span>
+        </a>
+        <a href="/volunteers.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition admin-only">
+          <i class="fa-solid fa-users-gear w-5 text-slate-500 text-center"></i>
+          <span class="">Gate Volunteers</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- User Profile & Logout -->
+    <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+      <div class="flex items-center justify-between mb-3 px-1">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div id="nav-user-avatar" class="w-8 h-8 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-xs shrink-0">A</div>
+          <div class="overflow-hidden">
+            <p id="nav-user-name" class="text-xs font-bold text-slate-900 truncate">Admin</p>
+            <span id="nav-user-role" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">ADMIN</span>
+          </div>
+        </div>
+      </div>
+      <button id="btn-logout" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition">
+        <i class="fa-solid fa-arrow-right-from-bracket text-slate-500"></i>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main id="main-content" class="flex flex-col min-w-0 overflow-y-auto" style="flex:1;">
+
+    <!-- Top Bar -->
+    <div class="p-4 sm:p-6 bg-white border-b border-slate-200 flex items-center justify-between flex-wrap gap-3">
+      <div class="flex items-center gap-3">
+        <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse"></span>
+        <div>
+          <h1 class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">Gate Verification Platform</h1>
+          <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Scan student pass QR code or search the student list to admit students</p>
+        </div>
+      </div>
+      
+      <!-- Right actions -->
+      <div class="flex items-center gap-2">
+        <a 
+          href="/students.html" 
+          class="px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold border border-blue-200 flex items-center gap-1.5 transition shadow-sm"
+        >
+          <i class="fa-solid fa-users-viewfinder text-blue-600"></i>
+          <span class="hidden sm:inline">Student Directory</span>
+          <span class="sm:hidden">Directory</span>
+        </a>
+
+        <button 
+          id="btnToggleSound" 
+          onclick="toggleAudio()" 
+          class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-medium border border-slate-300 flex items-center gap-2 transition shadow-sm"
+          title="Toggle Sound Beeps"
+        >
+          <i class="fa-solid fa-volume-high text-blue-600" id="soundIcon"></i>
+          <span class="hidden sm:inline">Audio Beeps</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Body Container -->
+    <div class="p-4 sm:p-6 space-y-6">
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- Scanner Viewfinder Column (5 cols on lg) -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm relative">
+            
+            <div class="flex items-center justify-between mb-3">
+              <span class="text-xs uppercase font-bold text-blue-600 tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-camera"></i> Live Camera Viewfinder
+              </span>
+              <div class="flex items-center gap-1.5">
+                <select id="cameraSelect" class="bg-white border border-slate-300 rounded-lg text-[11px] text-slate-700 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-600">
+                  <option value="">Detecting Cameras...</option>
+                </select>
+                <button onclick="restartScanner()" title="Restart Camera" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600">
+                  <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Scanner Box -->
+            <div class="relative w-full aspect-square bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center shadow-inner">
+              <div id="qr-reader" class="w-full h-full"></div>
+              
+              <!-- Large Square Scanning Target Frame (78% of Viewfinder) -->
+              <div class="absolute inset-[11%] pointer-events-none rounded-2xl border-2 border-dashed border-blue-400/40 flex items-center justify-center">
+                <!-- Laser Sweep Line inside the square -->
+                <div class="laser-line"></div>
+
+                <!-- High-contrast Reticle Corner Markers -->
+                <div class="absolute -top-1 -left-1 w-7 h-7 border-t-4 border-l-4 border-blue-500 rounded-tl-xl shadow-sm"></div>
+                <div class="absolute -top-1 -right-1 w-7 h-7 border-t-4 border-r-4 border-blue-500 rounded-tr-xl shadow-sm"></div>
+                <div class="absolute -bottom-1 -left-1 w-7 h-7 border-b-4 border-l-4 border-blue-500 rounded-bl-xl shadow-sm"></div>
+                <div class="absolute -bottom-1 -right-1 w-7 h-7 border-b-4 border-r-4 border-blue-500 rounded-br-xl shadow-sm"></div>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-slate-500 text-center mt-3 font-medium">
+              Point your phone or tablet camera at the student's VIP pass QR code.
+            </p>
+          </div>
+
+          <!-- Fallback Manual Entry -->
+          <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm">
+            <span class="text-xs uppercase font-bold text-slate-700 block mb-2">
+              Fast Roll / PRN / Token Lookup
+            </span>
+            <form id="manualLookupForm" class="flex gap-2">
+              <input 
+                type="text" 
+                id="manualCodeInput" 
+                placeholder="Enter Roll No / PRN / Token" 
+                class="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 uppercase placeholder:normal-case placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-sm"
+              >
+              <button 
+                type="submit" 
+                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm active:scale-95"
+              >
+                <span>Check</span>
+                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Student Verification Details & The 2 Action Buttons (7 cols on lg) -->
+        <div class="lg:col-span-7 space-y-4">
+
+          <!-- Initial Placeholder when waiting for scan -->
+          <div id="scanPlaceholder" class="bg-white rounded-2xl p-8 sm:p-12 text-center border border-slate-200 shadow-sm space-y-3">
+            <div class="w-16 h-16 rounded-2xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center text-3xl mx-auto">
+              <i class="fa-solid fa-id-card-clip"></i>
+            </div>
+            <h3 class="text-base sm:text-lg font-bold text-slate-900">Ready to Scan Next Fresher</h3>
+            <p class="text-xs sm:text-sm text-slate-500 max-w-sm mx-auto leading-relaxed">
+              When a student approaches the gate, scan their pass. Their verified details will appear here instantly with <strong>Accept</strong> and <strong>Reject</strong> buttons.
+            </p>
+          </div>
+
+          <!-- Student Result Card (Shown after scan) -->
+          <div id="studentResultCard" class="hidden bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 relative shadow-md space-y-5">
+            
+            <!-- Status Alert Banner -->
+            <div id="statusBanner" class="p-4 rounded-xl flex items-center gap-3">
+              <i id="statusBannerIcon" class="fa-solid fa-circle-check text-2xl shrink-0"></i>
+              <div>
+                <h4 id="statusBannerTitle" class="font-bold text-sm">VALID PASS - READY FOR ADMISSION</h4>
+                <p id="statusBannerSubtitle" class="text-xs opacity-90 mt-0.5">Verified against MySQL database records.</p>
+              </div>
+            </div>
+
+            <!-- Student Profile Information -->
+            <div class="bg-slate-50 rounded-2xl p-4 sm:p-5 border border-slate-200 space-y-4">
+              
+              <!-- Student Header -->
+              <div class="flex items-center gap-3.5 pb-4 border-b border-slate-200">
+                <div id="studentAvatar" class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-blue-600 text-white font-black text-xl sm:text-2xl flex items-center justify-center shadow-sm shrink-0">
+                  S
+                </div>
+                <div class="overflow-hidden">
+                  <h2 id="studentName" class="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">Student Name</h2>
+                  <p id="studentDept" class="text-xs font-semibold text-blue-600 truncate">Department of Computer Engineering</p>
+                </div>
+              </div>
+
+              <!-- Student Details Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+                  <span class="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">Roll Number</span>
+                  <span id="studentRoll" class="text-sm font-bold font-mono text-slate-900 mt-0.5 block">CS-2026-001</span>
+                </div>
+
+                <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+                  <span class="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">PRN Number</span>
+                  <span id="studentPrn" class="text-sm font-bold font-mono text-slate-900 mt-0.5 block">PRN2026101</span>
+                </div>
+
+                <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+                  <span class="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">Email Address</span>
+                  <span id="studentEmail" class="text-xs font-semibold text-slate-800 mt-0.5 block truncate">student@example.com</span>
+                </div>
+
+                <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+                  <span class="text-slate-500 text-[10px] uppercase font-bold tracking-wider block">Pass Token</span>
+                  <span id="studentToken" class="text-xs font-mono font-bold text-blue-700 mt-0.5 block truncate">FP26-XXXXX</span>
+                </div>
+              </div>
+
+              <!-- Previous Scan History Details (if already scanned) -->
+              <div id="previousScanNotice" class="hidden p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs flex items-start gap-2.5">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 shrink-0"></i>
+                <div id="previousScanNoticeText"></div>
+              </div>
+
+            </div>
+
+            <!-- THE 2 ACTION BUTTONS: ACCEPT and CANCEL/REJECT -->
+            <div class="space-y-2.5">
+              <span class="text-xs uppercase font-bold text-slate-600 tracking-wider block">
+                Gate Action Required:
+              </span>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                
+                <!-- ACCEPT ENTRY BUTTON -->
+                <button 
+                  id="btnAcceptEntry" 
+                  onclick="handleEntryAction('accept')"
+                  class="py-3.5 sm:py-4 px-5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-2xl text-sm shadow-sm flex items-center justify-center gap-2.5 transition active:scale-95"
+                >
+                  <i class="fa-solid fa-circle-check text-lg"></i>
+                  <span class="tracking-wide text-sm sm:text-base">ACCEPT ENTRY</span>
+                </button>
+
+                <!-- CANCEL / REJECT BUTTON -->
+                <button 
+                  id="btnRejectEntry" 
+                  onclick="openRejectDialog()"
+                  class="py-3.5 sm:py-4 px-5 bg-rose-600 hover:bg-rose-700 text-white font-extrabold rounded-2xl text-sm shadow-sm flex items-center justify-center gap-2.5 transition active:scale-95"
+                >
+                  <i class="fa-solid fa-circle-xmark text-lg"></i>
+                  <span class="tracking-wide text-sm sm:text-base">CANCEL / REJECT</span>
+                </button>
+
+              </div>
+            </div>
+
+            <!-- Reset / Scan Next button -->
+            <div class="pt-2 text-center">
+              <button onclick="resetScannerView()" class="text-xs text-slate-500 hover:text-slate-800 font-semibold transition flex items-center gap-1.5 mx-auto">
+                <i class="fa-solid fa-rotate-left text-blue-600"></i>
+                <span>Dismiss & Scan Next Student</span>
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Rejection Prompt Dialog Modal -->
+          <div id="rejectModal" class="hidden p-4 sm:p-5 rounded-2xl bg-rose-50 border border-rose-200 space-y-3 text-xs shadow-md">
+            <h4 class="font-bold text-sm text-rose-800 flex items-center gap-2">
+              <i class="fa-solid fa-ban text-rose-600"></i> Specify Rejection Reason
+            </h4>
+            <div class="space-y-2">
+              <label class="block text-slate-700 font-medium">Select standard reason or type custom:</label>
+              <select id="standardReason" onchange="applyStandardReason(this.value)" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-800 focus:ring-2 focus:ring-rose-500">
+                <option value="">-- Choose standard reason --</option>
+                <option value="No College ID proof presented">No College ID proof presented</option>
+                <option value="Pass already used / Duplicate entry attempted">Pass already used / Duplicate entry</option>
+                <option value="Disciplinary / Dress code violation">Disciplinary / Dress code violation</option>
+                <option value="Unregistered / Unverified pass holder">Unregistered / Unverified pass holder</option>
+                <option value="Name mismatch with PRN ID card">Name mismatch with PRN ID card</option>
+              </select>
+              <input type="text" id="customReasonInput" placeholder="Or enter specific rejection note..." class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-slate-800 focus:ring-2 focus:ring-rose-500">
+            </div>
+            <div class="flex items-center justify-end gap-2 pt-2">
+              <button onclick="closeRejectDialog()" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 font-medium">Cancel</button>
+              <button onclick="confirmRejection()" class="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold shadow-sm">
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Quick Student List / Roster for Volunteer -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-users-viewfinder text-blue-600"></i> Student Roster & Gate Check-in
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">Search students directly by name or roll number if QR is unavailable</p>
+          </div>
+          <div class="flex items-center gap-2 w-full sm:w-auto">
+            <input 
+              type="text" 
+              id="rosterSearch" 
+              placeholder="Search Name or Roll..." 
+              class="w-full sm:w-64 px-3 py-1.5 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 shadow-sm"
+            >
+            <a href="/students.html" class="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-semibold text-slate-700 transition shrink-0 shadow-sm">
+              Full View →
+            </a>
+          </div>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs min-w-[500px]">
+            <thead class="text-slate-500 bg-slate-50 border-b border-slate-200 uppercase tracking-wider text-[10px] font-semibold">
+              <tr>
+                <th class="py-2.5 px-3">Student Name</th>
+                <th class="py-2.5 px-3">Roll No</th>
+                <th class="py-2.5 px-3">Department</th>
+                <th class="py-2.5 px-3 text-center">Status</th>
+                <th class="py-2.5 px-3 text-right">Quick Gate Action</th>
+              </tr>
+            </thead>
+            <tbody id="volunteerRosterBody" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="5" class="text-center py-4 text-slate-400">Loading student roster...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Recent Gate Activity Feed -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left text-blue-600"></i> Recent Scans at this Gate
+          </h3>
+          <span class="text-xs text-slate-500 font-medium">Live gate audit trail</span>
+        </div>
+
+        <div id="recentScansTable" class="overflow-x-auto">
+          <table class="w-full text-left text-xs min-w-[600px]">
+            <thead class="text-slate-500 bg-slate-50 border-b border-slate-200 font-semibold">
+              <tr>
+                <th class="py-2 px-3">Student Name</th>
+                <th class="py-2 px-3">Roll & Dept</th>
+                <th class="py-2 px-3 text-center">Status</th>
+                <th class="py-2 px-3">Volunteer / Notes</th>
+                <th class="py-2 px-3 text-right">Time</th>
+              </tr>
+            </thead>
+            <tbody id="recentScansBody" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="5" class="text-center py-4 text-slate-400">Loading recent scans...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/audioHelper.js"></script>
+  <script>
+    API.requireAuth();
+    API.setupNav();
+
+    let html5QrCode = null;
+    let isScannerRunning = false;
+    let currentScannedStudent = null;
+    let isProcessingScan = false;
+
+    function toggleAudio() {
+      const enabled = SoundHelper.toggleSound();
+      const icon = document.getElementById('soundIcon');
+      const mobileIcon = document.getElementById('mobileSoundIcon');
+      const iconClass = enabled ? 'fa-solid fa-volume-high text-blue-600' : 'fa-solid fa-volume-xmark text-rose-600';
+      if (icon) icon.className = iconClass;
+      if (mobileIcon) mobileIcon.className = iconClass;
+      API.toast(enabled ? 'Sound beeps turned ON' : 'Sound beeps muted', 'info', 1500);
+    }
+
+    async function initQrScanner() {
+      const cameraSelect = document.getElementById('cameraSelect');
+
+      // Check for Secure Context (required by iOS/Android browsers for camera access)
+      if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        API.toast('Mobile browsers require HTTPS to access camera. Please open via HTTPS link.', 'error', 6000);
+      }
+
+      try {
+        const devices = await Html5Qrcode.getCameras().catch(() => []);
+        if (devices && devices.length > 0) {
+          cameraSelect.innerHTML = devices.map(d => `<option value="${d.id}">${d.label || 'Camera ' + d.id}</option>`).join('');
+          
+          const backCam = devices.find(d => {
+            const lbl = (d.label || '').toLowerCase();
+            return lbl.includes('back') || lbl.includes('rear') || lbl.includes('environment');
+          });
+          const selectedId = backCam ? backCam.id : devices[0].id;
+          cameraSelect.value = selectedId;
+
+          await startScannerWithCamera(selectedId);
+        } else {
+          // Direct fallback for mobile devices where getCameras() requires prior permission
+          cameraSelect.innerHTML = `<option value="environment">Back Camera (Auto)</option>`;
+          await startScannerDirectEnvironment();
+        }
+      } catch (err) {
+        console.error('Camera access error:', err);
+        cameraSelect.innerHTML = `<option value="environment">Tap to Enable Camera</option>`;
+        // Try direct environment facing mode
+        await startScannerDirectEnvironment().catch(() => {
+          API.toast('Camera permission denied or blocked. Tap viewfinder or use manual lookup.', 'warning');
+        });
+      }
+    }
+
+    function getScannerConfig() {
+      return {
+        fps: 20,
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          // Large, spacious 78% square scanning target box
+          const size = Math.floor(minEdge * 0.78);
+          return { width: size, height: size };
+        },
+        aspectRatio: 1.0,
+        showTorchButtonIfSupported: true
+      };
+    }
+
+    async function startScannerDirectEnvironment() {
+      if (isScannerRunning && html5QrCode) {
+        await html5QrCode.stop().catch(() => {});
+        isScannerRunning = false;
+      }
+
+      html5QrCode = new Html5Qrcode('qr-reader');
+      const config = getScannerConfig();
+
+      await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
+      isScannerRunning = true;
+    }
+
+    async function startScannerWithCamera(cameraId) {
+      if (isScannerRunning && html5QrCode) {
+        await html5QrCode.stop().catch(() => {});
+        isScannerRunning = false;
+      }
+
+      html5QrCode = new Html5Qrcode('qr-reader');
+      const config = getScannerConfig();
+
+      try {
+        await html5QrCode.start(
+          cameraId,
+          config,
+          onScanSuccess,
+          onScanFailure
+        );
+        isScannerRunning = true;
+      } catch (err) {
+        console.warn('Failed to start camera with ID:', err);
+        try {
+          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
+          isScannerRunning = true;
+        } catch (e2) {
+          console.error('Environment camera fallback failed:', e2);
+        }
+      }
+    }
+
+    cameraSelect.addEventListener('change', () => {
+      if (cameraSelect.value) {
+        startScannerWithCamera(cameraSelect.value);
+      }
+    });
+
+    function restartScanner() {
+      if (cameraSelect.value) {
+        startScannerWithCamera(cameraSelect.value);
+      } else {
+        initQrScanner();
+      }
+    }
+
+    function onScanSuccess(decodedText, decodedResult) {
+      if (isProcessingScan) return;
+      isProcessingScan = true;
+      SoundHelper.playClick();
+      processStudentCode(decodedText);
+    }
+
+    function onScanFailure(error) {}
+
+    document.getElementById('manualLookupForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const code = document.getElementById('manualCodeInput').value.trim();
+      if (!code) return;
+      SoundHelper.playClick();
+      processStudentCode(code);
+    });
+
+    async function processStudentCode(code) {
+      try {
+        const res = await API.request('/api/scan/lookup', {
+          method: 'POST',
+          body: JSON.stringify({ code })
+        });
+
+        currentScannedStudent = res.student;
+        displayStudentResult(res);
+
+      } catch (err) {
+        SoundHelper.playWarning();
+        API.toast(err.message || 'Pass invalid or not found in system!', 'error', 4000);
+        isProcessingScan = false;
+      }
+    }
+
+    function displayStudentResult(data) {
+      const student = data.student;
+      document.getElementById('scanPlaceholder').classList.add('hidden');
+      document.getElementById('studentResultCard').classList.remove('hidden');
+
+      document.getElementById('studentName').textContent = student.name;
+      document.getElementById('studentAvatar').textContent = student.name.charAt(0);
+      document.getElementById('studentDept').textContent = `${student.department || ''}${student.division ? ' • Div ' + student.division : ''}${student.transaction_id ? ' • Txn: ' + student.transaction_id : ''}`;
+      document.getElementById('studentRoll').textContent = student.roll_no;
+      document.getElementById('studentPrn').textContent = student.prn_no;
+      document.getElementById('studentEmail').textContent = student.email;
+      document.getElementById('studentToken').textContent = student.qr_token;
+
+      const banner = document.getElementById('statusBanner');
+      const icon = document.getElementById('statusBannerIcon');
+      const title = document.getElementById('statusBannerTitle');
+      const subtitle = document.getElementById('statusBannerSubtitle');
+      const prevNotice = document.getElementById('previousScanNotice');
+      const prevNoticeText = document.getElementById('previousScanNoticeText');
+
+      if (data.isDuplicate) {
+        SoundHelper.playWarning();
+        banner.className = 'p-4 rounded-xl flex items-center gap-3 bg-amber-50 border border-amber-200 text-amber-900';
+        icon.className = 'fa-solid fa-triangle-exclamation text-2xl text-amber-600 animate-bounce';
+        title.textContent = '⚠️ DUPLICATE SCAN: PASS ALREADY ADMITTED!';
+        subtitle.textContent = `This student was previously granted entry. Verify identity.`;
+
+        prevNotice.classList.remove('hidden');
+        prevNoticeText.innerHTML = `<strong>Admitted on:</strong> ${new Date(student.verified_at).toLocaleTimeString()} by <strong>${student.verified_by_name || 'Gate Volunteer'}</strong>.`;
+      } else if (data.isRejected) {
+        SoundHelper.playWarning();
+        banner.className = 'p-4 rounded-xl flex items-center gap-3 bg-rose-50 border border-rose-200 text-rose-900';
+        icon.className = 'fa-solid fa-ban text-2xl text-rose-600';
+        title.textContent = '🚫 ENTRY PREVIOUSLY REJECTED!';
+        subtitle.textContent = `Reason: ${student.rejection_reason || 'Gate refused'}`;
+        prevNotice.classList.add('hidden');
+      } else {
+        SoundHelper.playSuccess();
+        banner.className = 'p-4 rounded-xl flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-900';
+        icon.className = 'fa-solid fa-circle-check text-2xl text-emerald-600';
+        title.textContent = '✅ VALID PASS - READY FOR ENTRY';
+        subtitle.textContent = 'Student record verified. Press Accept Entry to admit.';
+        prevNotice.classList.add('hidden');
+      }
+
+      document.getElementById('studentResultCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    async function handleEntryAction(action, reason = '') {
+      if (!currentScannedStudent) return;
+
+      const isForced = (action === 'accept' && currentScannedStudent.entry_status === 'accepted');
+      if (isForced) {
+        if (!confirm(`⚠️ ALERT: ${currentScannedStudent.name} is ALREADY marked as admitted! Are you sure you want to re-admit them?`)) {
+          return;
+        }
+      }
+
+      try {
+        const res = await API.request('/api/scan/action', {
+          method: 'POST',
+          body: JSON.stringify({
+            studentId: currentScannedStudent.id,
+            action,
+            reason,
+            forceAccept: isForced
+          })
+        });
+
+        if (action === 'accept') {
+          SoundHelper.playSuccess();
+          API.toast(`✅ ADMITTED: ${currentScannedStudent.name}`, 'success', 3500);
+        } else {
+          SoundHelper.playWarning();
+          API.toast(`❌ REJECTED: ${currentScannedStudent.name}`, 'warning', 3500);
+        }
+
+        loadRecentScans();
+        loadVolunteerRoster();
+
+        setTimeout(() => {
+          resetScannerView();
+        }, 1800);
+
+      } catch (err) {
+        SoundHelper.playWarning();
+        API.toast(err.message, 'error');
+      }
+    }
+
+    function openRejectDialog() {
+      document.getElementById('rejectModal').classList.remove('hidden');
+      document.getElementById('rejectModal').scrollIntoView({ behavior: 'smooth' });
+    }
+    function closeRejectDialog() {
+      document.getElementById('rejectModal').classList.add('hidden');
+    }
+    function applyStandardReason(val) {
+      if (val) {
+        document.getElementById('customReasonInput').value = val;
+      }
+    }
+    function confirmRejection() {
+      const reason = document.getElementById('customReasonInput').value.trim() || 'Entry refused at gate';
+      closeRejectDialog();
+      handleEntryAction('reject', reason);
+    }
+
+    function resetScannerView() {
+      currentScannedStudent = null;
+      isProcessingScan = false;
+      document.getElementById('manualCodeInput').value = '';
+      document.getElementById('studentResultCard').classList.add('hidden');
+      document.getElementById('scanPlaceholder').classList.remove('hidden');
+      closeRejectDialog();
+    }
+
+    async function loadVolunteerRoster() {
+      const search = document.getElementById('rosterSearch').value.trim();
+      const params = new URLSearchParams({ page: 1, limit: 8, search });
+
+      try {
+        const res = await API.request(`/api/students?${params.toString()}`);
+        const tbody = document.getElementById('volunteerRosterBody');
+
+        if (!res.students || res.students.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">No students found matching "${search}".</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = res.students.map(s => {
+          const isAccepted = s.entry_status === 'accepted';
+          const isRejected = s.entry_status === 'rejected';
+          const badgeClass = isAccepted ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                             isRejected ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                             'bg-slate-100 text-slate-700 border-slate-200';
+          const statusText = isAccepted ? 'ADMITTED' : isRejected ? 'REJECTED' : 'PENDING';
+
+          const actionBtns = !isAccepted ? `
+            <button onclick="admitFromRoster(${s.id}, '${s.name.replace(/'/g, "\\'")}')" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] transition shadow-sm">
+              <i class="fa-solid fa-check"></i> Accept
+            </button>
+            <button onclick="rejectFromRoster(${s.id}, '${s.name.replace(/'/g, "\\'")}')" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[10px] transition font-semibold">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          ` : `
+            <span class="text-emerald-700 font-bold text-[10px] flex items-center justify-end gap-1">
+              <i class="fa-solid fa-circle-check text-emerald-600"></i> In Venue
+            </span>
+          `;
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-2.5 px-3 font-bold text-slate-900">${s.name}</td>
+              <td class="py-2.5 px-3 font-mono text-slate-700">${s.roll_no}</td>
+              <td class="py-2.5 px-3 text-slate-600">${s.department}</td>
+              <td class="py-2.5 px-3 text-center">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">
+                  ${statusText}
+                </span>
+              </td>
+              <td class="py-2.5 px-3 text-right">
+                <div class="inline-flex items-center gap-1.5 justify-end">
+                  ${actionBtns}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('Roster load error:', e);
+      }
+    }
+
+    async function admitFromRoster(id, name) {
+      try {
+        const res = await API.request('/api/scan/action', {
+          method: 'POST',
+          body: JSON.stringify({ studentId: id, action: 'accept' })
+        });
+        SoundHelper.playSuccess();
+        API.toast(res.message, 'success');
+        loadRecentScans();
+        loadVolunteerRoster();
+      } catch (err) {
+        SoundHelper.playWarning();
+        API.toast(err.message, 'error');
+      }
+    }
+
+    async function rejectFromRoster(id, name) {
+      const reason = prompt(`Rejection reason for ${name}:`, 'Refused at gate / No ID card');
+      if (reason === null) return;
+      try {
+        const res = await API.request('/api/scan/action', {
+          method: 'POST',
+          body: JSON.stringify({ studentId: id, action: 'reject', reason })
+        });
+        SoundHelper.playWarning();
+        API.toast(res.message, 'warning');
+        loadRecentScans();
+        loadVolunteerRoster();
+      } catch (err) {
+        API.toast(err.message, 'error');
+      }
+    }
+
+    document.getElementById('rosterSearch').addEventListener('input', () => {
+      loadVolunteerRoster();
+    });
+
+    async function loadRecentScans() {
+      try {
+        const res = await API.request('/api/scan/recent');
+        const tbody = document.getElementById('recentScansBody');
+        
+        if (!res.logs || res.logs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" class="text-center py-4 text-slate-400">No scans logged yet today.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = res.logs.slice(0, 8).map(l => {
+          const isAccepted = l.action === 'accepted';
+          const isRejected = l.action === 'rejected';
+          const badgeClass = isAccepted ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                             isRejected ? 'bg-rose-50 text-rose-800 border-rose-200' :
+                             'bg-slate-100 text-slate-800 border-slate-200';
+          const timeStr = new Date(l.scanned_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+          return `
+            <tr class="hover:bg-slate-50 transition">
+              <td class="py-2.5 px-3 font-bold text-slate-900">${l.student_name}</td>
+              <td class="py-2.5 px-3 font-mono text-slate-600">${l.roll_no} • ${l.department}</td>
+              <td class="py-2.5 px-3 text-center">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">
+                  ${l.action.toUpperCase()}
+                </span>
+              </td>
+              <td class="py-2.5 px-3 text-slate-600">${l.volunteer_name} <span class="text-[10px] text-slate-400">(${l.notes || ''})</span></td>
+              <td class="py-2.5 px-3 text-right font-mono text-slate-500">${timeStr}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        console.error('Recent scans error:', e);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initQrScanner();
+      loadRecentScans();
+      loadVolunteerRoster();
+      setInterval(loadRecentScans, 10000);
+    });
+  </script>
+</body>
+</html>

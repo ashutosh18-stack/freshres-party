@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Directory & Passes - Fresher Fiesta 2026</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased" style="display:flex; flex-direction:row; min-height:100vh;">
+
+  <!-- Mobile Top Header (hidden tablet+ via CSS) -->
+  <header class="mobile-top-header" style="display:none; position:fixed; top:0; left:0; right:0; z-index:60; background:#fff; border-bottom:1px solid #e2e8f0; padding:0.875rem 1rem; align-items:center; justify-content:space-between; box-shadow:0 1px 4px rgba(15,23,42,0.07);">
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <div style="width:2.25rem; height:2.25rem; border-radius:0.75rem; background:#2563eb; display:flex; align-items:center; justify-content:center;">
+        <i class="fa-solid fa-users-viewfinder" style="color:#fff; font-size:0.85rem;"></i>
+      </div>
+      <div>
+        <span style="font-weight:800; font-size:0.95rem; color:#0f172a; display:block; line-height:1.2;">Fresher Fiesta</span>
+        <span style="font-size:0.65rem; color:#64748b; font-weight:500;">Student Directory</span>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      
+      <button id="mobile-menu-toggle" style="padding:0.5rem; background:none; border:none; cursor:pointer; color:#475569;" aria-label="Toggle Navigation">
+        <i class="fa-solid fa-bars" style="font-size:1.25rem;"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Sidebar -->
+  <aside id="sidebar" class="flex flex-col justify-between bg-white border-r border-slate-200">
+    <div>
+      <!-- Brand -->
+      <div class="p-6 border-b border-slate-100 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
+          <i class="fa-solid fa-users-viewfinder text-base"></i>
+        </div>
+        <div>
+          <h2 class="font-extrabold text-base text-slate-900 leading-none">Fresher Fiesta</h2>
+          <span class="text-[11px] text-slate-500 font-medium">Entry Gate Platform</span>
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <nav class="p-4 space-y-1.5 text-sm font-medium">
+        <a href="/dashboard.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-chart-pie w-5 text-slate-500 text-center"></i>
+          <span class="">Dashboard</span>
+        </a>
+        <a href="/students.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 transition">
+          <i class="fa-solid fa-users-viewfinder w-5 text-blue-600 text-center"></i>
+          <span class="font-semibold">Student Directory</span>
+        </a>
+        <a href="/passes.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition admin-only">
+          <i class="fa-solid fa-envelope-open-text w-5 text-slate-500 text-center"></i>
+          <span class="">QR Passes & Email</span>
+        </a>
+        <a href="/scanner.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition">
+          <i class="fa-solid fa-qrcode w-5 text-slate-500 text-center"></i>
+          <span class="">Gate Scanner</span>
+        </a>
+        <a href="/volunteers.html" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition admin-only">
+          <i class="fa-solid fa-users-gear w-5 text-slate-500 text-center"></i>
+          <span class="">Gate Volunteers</span>
+        </a>
+      </nav>
+    </div>
+
+    <!-- User Profile & Logout -->
+    <div class="p-4 border-t border-slate-100 bg-slate-50/50">
+      <div class="flex items-center justify-between mb-3 px-1">
+        <div class="flex items-center gap-2.5 overflow-hidden">
+          <div id="nav-user-avatar" class="w-8 h-8 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center text-xs shrink-0">A</div>
+          <div class="overflow-hidden">
+            <p id="nav-user-name" class="text-xs font-bold text-slate-900 truncate">Admin</p>
+            <span id="nav-user-role" class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">ADMIN</span>
+          </div>
+        </div>
+      </div>
+      <button id="btn-logout" class="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-transparent hover:border-rose-200 rounded-xl transition">
+        <i class="fa-solid fa-arrow-right-from-bracket text-slate-500"></i>
+        <span>Sign Out</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main Content Area -->
+  <main id="main-content" class="flex flex-col min-w-0 overflow-y-auto" style="flex:1;">
+
+    <!-- Top Bar -->
+    <div class="p-4 sm:p-6 md:px-8 bg-white border-b border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div>
+        <h1 id="pageHeaderTitle" class="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Student Directory & Verification</h1>
+        <p id="pageHeaderSubtitle" class="text-xs sm:text-sm text-slate-500 mt-0.5">Search, verify database records, and monitor student entry passes</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2.5">
+        <!-- Admin only actions -->
+        <a href="/api/students/sample-excel" download="fresher_students_sample.xlsx" class="admin-only px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-300 shadow-sm flex items-center gap-2 transition active:scale-95">
+          <i class="fa-solid fa-download text-blue-600"></i>
+          <span>Sample Template</span>
+        </a>
+        <button onclick="openAddModal()" class="admin-only px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 transition active:scale-95">
+          <i class="fa-solid fa-user-plus text-xs"></i>
+          <span>Add Student</span>
+        </button>
+        <!-- Scanner shortcut -->
+        <a href="/scanner.html" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 transition active:scale-95">
+          <i class="fa-solid fa-qrcode text-xs"></i>
+          <span>Gate Scanner</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Body Container -->
+    <div class="p-4 sm:p-6 md:px-8 space-y-6">
+
+      <!-- Volunteer Banner Notice -->
+      <div id="volunteerBanner" class="hidden bg-blue-50 rounded-2xl p-4 sm:p-5 border border-blue-200 text-blue-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-center gap-3">
+          <span class="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse shrink-0"></span>
+          <div>
+            <p class="font-bold text-sm text-slate-900">Volunteer Student Directory Active</p>
+            <p class="text-xs text-slate-600 mt-0.5">
+              If a fresher forgot their pass or their phone battery died, search their Name or Roll No here and click <strong>Accept</strong> or <strong>Reject</strong> directly.
+            </p>
+          </div>
+        </div>
+        <a href="/scanner.html" class="shrink-0 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs flex items-center gap-2 shadow-sm transition">
+          <i class="fa-solid fa-camera"></i> Switch to Camera Scanner
+        </a>
+      </div>
+
+      <!-- Excel Import Drag & Drop Card (ADMIN ONLY) -->
+      <div id="excelImportCard" class="admin-only bg-white rounded-2xl p-5 sm:p-6 border border-slate-200 shadow-sm relative">
+        <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div class="space-y-1.5 max-w-xl">
+            <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-[11px] font-bold border border-blue-100">
+              <i class="fa-solid fa-file-excel text-blue-600"></i> Bulk Registration
+            </div>
+            <h3 class="text-base sm:text-lg font-bold text-slate-900">Import Student Excel Sheet</h3>
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Upload your sheet (.xlsx, .xls, .csv). Supported columns: 
+              <span class="text-blue-700 font-mono font-semibold">Student Name, Roll No, DIVISION, Class, Email, PRN No:, Phone No, Transaction Id</span>. 
+              The platform automatically maps your Google Form / Excel columns and generates a unique tamper-proof QR code pass for each student.
+            </p>
+          </div>
+
+          <!-- Upload Drop Box -->
+          <div class="w-full lg:w-96">
+            <form id="importForm" class="space-y-3">
+              <div 
+                id="dropZone" 
+                class="border-2 border-dashed border-blue-200 hover:border-blue-400 rounded-2xl p-5 text-center cursor-pointer transition bg-slate-50 hover:bg-blue-50/50"
+              >
+                <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden">
+                <i class="fa-solid fa-cloud-arrow-up text-3xl text-blue-600 mb-2"></i>
+                <p id="fileLabel" class="text-xs font-bold text-slate-700">
+                  Click or drag Excel file here
+                </p>
+                <span class="text-[10px] text-slate-500 block mt-1">Supports .xlsx, .xls, .csv (Max 15MB)</span>
+              </div>
+
+              <button 
+                type="submit" 
+                id="btnUpload"
+                class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50"
+                disabled
+              >
+                <i class="fa-solid fa-upload"></i>
+                <span>Upload & Import Students</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- Import Progress / Status Feedback -->
+        <div id="importResult" class="hidden mt-4 pt-4 border-t border-slate-100 text-xs"></div>
+      </div>
+
+      <!-- Filters & Search Toolbar -->
+      <div class="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 shadow-sm space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          
+          <!-- Search box -->
+          <div class="relative">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3 text-xs text-blue-600"></i>
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="Search Name, Roll, PRN, Email..." 
+              class="w-full pl-9 pr-3 py-2 bg-white border border-slate-300 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-sm"
+            >
+          </div>
+
+          <!-- Department dropdown -->
+          <div>
+            <select id="deptFilter" class="w-full py-2 px-3 bg-white border border-slate-300 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-sm">
+              <option value="all">All Departments</option>
+            </select>
+          </div>
+
+          <!-- Entry Status filter -->
+          <div>
+            <select id="entryStatusFilter" class="w-full py-2 px-3 bg-white border border-slate-300 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-sm">
+              <option value="all">All Gate Statuses</option>
+              <option value="accepted">Accepted (Admitted)</option>
+              <option value="pending">Pending Gate Arrival</option>
+              <option value="rejected">Rejected / Denied</option>
+            </select>
+          </div>
+
+          <!-- Mail Status filter -->
+          <div>
+            <select id="mailStatusFilter" class="w-full py-2 px-3 bg-white border border-slate-300 rounded-xl text-xs text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition shadow-sm">
+              <option value="all">All Email Statuses</option>
+              <option value="sent">Email Sent</option>
+              <option value="pending">Email Pending</option>
+              <option value="failed">Email Failed</option>
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Students Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-800">Registered Students Roster</span>
+            <span id="studentCountBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">0 Total</span>
+          </div>
+          <a href="/passes.html" class="admin-only text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
+            <span>QR & Email Dispatch Center</span>
+            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+          </a>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs min-w-[700px]">
+            <thead class="text-slate-500 bg-slate-50 border-b border-slate-200 uppercase tracking-wider text-[10px] font-semibold">
+              <tr>
+                <th class="py-3 px-4">Student Info</th>
+                <th class="py-3 px-4">Roll & PRN</th>
+                <th class="py-3 px-4">Department</th>
+                <th class="py-3 px-4">Contact</th>
+                <th class="py-3 px-4 text-center">Gate Entry</th>
+                <th class="py-3 px-4 text-center">Pass Mail</th>
+                <th class="py-3 px-4 text-right">Gate / Admin Actions</th>
+              </tr>
+            </thead>
+            <tbody id="studentsTableBody" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="7" class="text-center py-10 text-slate-400">
+                  <i class="fa-solid fa-circle-notch fa-spin text-lg mb-2 text-blue-600"></i>
+                  <p>Loading students list...</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div class="p-4 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+          <span id="pageInfo">Showing page 1</span>
+          <div class="flex items-center gap-2">
+            <button id="btnPrevPage" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 disabled:opacity-40 transition font-medium shadow-sm">
+              <i class="fa-solid fa-chevron-left text-[10px]"></i> Prev
+            </button>
+            <button id="btnNextPage" class="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 disabled:opacity-40 transition font-medium shadow-sm">
+              Next <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Add Student Manually Modal (Admin Only) -->
+  <div id="addModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-6 border border-slate-200 relative shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-blue-600"></i> Add Student Manually
+        </h3>
+        <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="addStudentForm" class="space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Full Student Name *</label>
+          <input type="text" id="addName" required placeholder="e.g. Priya Sharma" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Roll Number *</label>
+            <input type="text" id="addRoll" required placeholder="CS-2026-045" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">PRN Number *</label>
+            <input type="text" id="addPrn" required placeholder="PRN202688" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+          </div>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Department / Branch *</label>
+          <input type="text" id="addDept" required placeholder="Computer Engineering" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Email Address *</label>
+            <input type="email" id="addEmail" required placeholder="student@example.com" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Phone Number (Optional)</label>
+            <input type="text" id="addPhone" placeholder="+91 9876543210" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+          </div>
+        </div>
+
+        <div class="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+          <button type="button" onclick="closeAddModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold">Cancel</button>
+          <button type="submit" id="btnAddSubmit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm">
+            Generate Pass & Save
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Student Details & Email Modal (Admin Only) -->
+  <div id="editModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-6 border border-slate-200 relative shadow-xl max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+        <div>
+          <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+            <i class="fa-solid fa-user-pen text-blue-600"></i> Edit Student Details & Email
+          </h3>
+          <p class="text-[11px] text-slate-500 mt-0.5">Admin authority to update email, personal info, and QR pass</p>
+        </div>
+        <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <form id="editStudentForm" class="space-y-4 text-xs">
+        <input type="hidden" id="editStudentId">
+
+        <!-- Pass Token Banner -->
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+          <span class="text-slate-500 text-[11px]">Active Pass Token:</span>
+          <span id="editTokenDisplay" class="font-mono text-xs font-bold text-blue-700">FP26-XXXXX</span>
+        </div>
+
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Full Student Name *</label>
+          <input type="text" id="editName" required class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-600">
+        </div>
+
+        <!-- Highlighted Email Field -->
+        <div class="p-3.5 rounded-xl bg-blue-50 border border-blue-200 space-y-1">
+          <label class="block font-bold text-blue-900 flex items-center gap-1.5">
+            <i class="fa-regular fa-envelope text-blue-600"></i> Student Email Address * (Pass Recipient)
+          </label>
+          <input type="email" id="editEmail" required class="w-full px-3 py-2.5 bg-white border border-blue-300 rounded-xl text-slate-900 font-medium focus:ring-2 focus:ring-blue-600">
+          <p class="text-[10px] text-blue-700">Updating this address changes where the QR entry pass is emailed.</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Roll Number *</label>
+            <input type="text" id="editRoll" required class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 font-mono">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">PRN Number *</label>
+            <input type="text" id="editPrn" required class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900 font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Department / Branch *</label>
+            <input type="text" id="editDept" required class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900">
+          </div>
+          <div>
+            <label class="block font-bold text-slate-700 mb-1">Phone Number</label>
+            <input type="text" id="editPhone" class="w-full px-3 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-900">
+          </div>
+        </div>
+
+        <!-- Checkbox Options -->
+        <div class="space-y-2 pt-2 border-t border-slate-100">
+          <label class="flex items-center gap-2 text-slate-800 cursor-pointer">
+            <input type="checkbox" id="editResendEmail" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
+            <span>✉️ <strong>Resend VIP Pass email to this address immediately</strong></span>
+          </label>
+          <label class="flex items-center gap-2 text-slate-600 cursor-pointer text-[11px]">
+            <input type="checkbox" id="editNewToken" class="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
+            <span>🎟️ Issue a brand new QR Token (invalidates previous QR code pass)</span>
+          </label>
+        </div>
+
+        <div class="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+          <button type="button" onclick="closeEditModal()" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold">Cancel</button>
+          <button type="submit" id="btnEditSubmit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-sm flex items-center gap-2">
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Save & Apply Updates</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- QR Pass Card Preview Modal -->
+  <div id="passModal" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl w-full max-w-sm p-6 border border-slate-200 relative text-center shadow-xl">
+      <button onclick="closePassModal()" class="absolute right-4 top-4 text-slate-400 hover:text-slate-600">
+        <i class="fa-solid fa-xmark text-lg"></i>
+      </button>
+
+      <div id="printablePass" class="space-y-4">
+        <div class="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold uppercase tracking-wider border border-blue-200">
+          VIP Entry Pass 2026
+        </div>
+        <h3 class="text-lg font-extrabold text-slate-900">Fresher Fiesta 2026</h3>
+        
+        <div class="p-3 bg-slate-50 border border-slate-200 rounded-2xl inline-block shadow-sm">
+          <img id="modalQrImg" src="" alt="Pass QR Code" class="w-48 h-48 block mx-auto">
+        </div>
+
+        <div>
+          <span id="modalToken" class="font-mono text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg">TOKEN</span>
+        </div>
+
+        <div class="bg-slate-50 rounded-xl p-3 text-left space-y-1.5 text-xs border border-slate-200">
+          <p><strong class="text-slate-500">Name:</strong> <span id="modalName" class="text-slate-900 font-bold"></span></p>
+          <p><strong class="text-slate-500">Roll No:</strong> <span id="modalRoll" class="text-slate-800 font-mono"></span></p>
+          <p><strong class="text-slate-500">PRN No:</strong> <span id="modalPrn" class="text-slate-800 font-mono"></span></p>
+          <p><strong class="text-slate-500">Department:</strong> <span id="modalDept" class="text-slate-800"></span></p>
+          <p><strong class="text-slate-500">Gate Entry:</strong> <span id="modalStatus" class="font-bold"></span></p>
+        </div>
+      </div>
+
+      <div class="mt-4 flex items-center justify-center gap-2">
+        <button onclick="window.print()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-print text-blue-600"></i> Print Pass
+        </button>
+        <a id="modalPublicLink" href="#" target="_blank" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i> Open Live Link
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script>
+    API.requireAuth(false);
+    API.setupNav();
+
+    const currentUser = API.getUser() || {};
+    const isVolunteer = currentUser.role === 'volunteer';
+
+    if (isVolunteer) {
+      document.getElementById('volunteerBanner').classList.remove('hidden');
+      document.getElementById('pageHeaderTitle').textContent = 'Student Directory & Gate Verification';
+      document.getElementById('pageHeaderSubtitle').textContent = 'Live roster for gate volunteers to look up and admit freshers';
+    }
+
+    let currentPage = 1;
+    let selectedFile = null;
+
+    // Excel File Drag & Drop (Admin only)
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('excelFileInput');
+    const fileLabel = document.getElementById('fileLabel');
+    const btnUpload = document.getElementById('btnUpload');
+    const importForm = document.getElementById('importForm');
+    const importResult = document.getElementById('importResult');
+
+    if (dropZone && fileInput) {
+      dropZone.addEventListener('click', () => fileInput.click());
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-blue-500', 'bg-blue-50');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+        if (e.dataTransfer.files.length > 0) {
+          handleFileSelection(e.dataTransfer.files[0]);
+        }
+      });
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+          handleFileSelection(fileInput.files[0]);
+        }
+      });
+    }
+
+    function handleFileSelection(file) {
+      selectedFile = file;
+      fileLabel.innerHTML = `📄 <strong class="text-blue-700">${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
+      btnUpload.disabled = false;
+    }
+
+    if (importForm) {
+      importForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!selectedFile) return;
+
+        btnUpload.disabled = true;
+        btnUpload.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing & Generating QR Passes...`;
+        importResult.classList.add('hidden');
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        try {
+          const res = await API.request('/api/students/import', {
+            method: 'POST',
+            body: formData
+          });
+
+          importResult.classList.remove('hidden');
+          importResult.innerHTML = `
+            <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 font-medium">
+              <p class="font-bold text-sm">✅ ${res.message}</p>
+              <p class="mt-1 text-xs">Total Rows: ${res.stats.totalRowsInFile} | New: ${res.stats.importedCount} | Updated: ${res.stats.updatedCount} | Errors: ${res.stats.skippedErrors}</p>
+            </div>
+          `;
+          API.toast(res.message, 'success');
+          fetchStudents();
+        } catch (err) {
+          importResult.classList.remove('hidden');
+          importResult.innerHTML = `
+            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 font-medium">
+              <p class="font-bold">❌ Import Failed</p>
+              <p class="mt-1">${err.message}</p>
+            </div>
+          `;
+          API.toast(err.message, 'error');
+        } finally {
+          btnUpload.disabled = false;
+          btnUpload.innerHTML = `<i class="fa-solid fa-upload"></i> <span>Upload & Import Students</span>`;
+        }
+      });
+    }
+
+    async function fetchStudents() {
+      const search = document.getElementById('searchInput').value.trim();
+      const department = document.getElementById('deptFilter').value;
+      const entryStatus = document.getElementById('entryStatusFilter').value;
+      const mailStatus = document.getElementById('mailStatusFilter').value;
+
+      const params = new URLSearchParams({
+        page: currentPage,
+        limit: 15,
+        search,
+        department,
+        entry_status: entryStatus,
+        mail_status: mailStatus
+      });
+
+      try {
+        const res = await API.request(`/api/students?${params.toString()}`);
+        renderStudentsTable(res.students);
+        updatePagination(res.pagination);
+        populateDeptDropdown(res.departments);
+        document.getElementById('studentCountBadge').textContent = `${res.pagination.total} Total`;
+      } catch (err) {
+        API.toast(err.message, 'error');
+      }
+    }
+
+    function populateDeptDropdown(depts) {
+      const select = document.getElementById('deptFilter');
+      const currentVal = select.value;
+      if (depts && depts.length > 0 && select.options.length <= 1) {
+        depts.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d;
+          opt.textContent = d;
+          select.appendChild(opt);
+        });
+        select.value = currentVal;
+      }
+    }
+
+    function renderStudentsTable(students) {
+      const tbody = document.getElementById('studentsTableBody');
+      if (!students || students.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="text-center py-10 text-slate-400">
+              <i class="fa-solid fa-users-slash text-2xl mb-2 block text-slate-300"></i>
+              No students found matching your filters.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = students.map(s => {
+        const isAccepted = s.entry_status === 'accepted';
+        const isRejected = s.entry_status === 'rejected';
+        const entryBadge = isAccepted 
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">ADMITTED</span>`
+          : isRejected 
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200">REJECTED</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">PENDING</span>`;
+
+        const mailBadge = s.mail_status === 'sent'
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">SENT</span>`
+          : s.mail_status === 'failed'
+          ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">FAILED</span>`
+          : `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">PENDING</span>`;
+
+        const admitAction = !isAccepted 
+          ? `<button onclick="quickAction(${s.id}, 'accept', '${s.name.replace(/'/g, "\\'")}')" title="Accept & Admit Student" class="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-sm">
+              <i class="fa-solid fa-check"></i>
+              <span>Accept</span>
+            </button>`
+          : `<button onclick="quickAction(${s.id}, 'accept', '${s.name.replace(/'/g, "\\'")}', true)" title="Already Admitted (Click to re-confirm)" class="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] flex items-center gap-1 font-semibold">
+              <i class="fa-solid fa-check-double text-emerald-600"></i>
+              <span>In Venue</span>
+            </button>`;
+
+        const rejectAction = !isRejected
+          ? `<button onclick="quickRejectPrompt(${s.id}, '${s.name.replace(/'/g, "\\'")}')" title="Reject Entry" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 text-[10px] flex items-center gap-1 transition font-semibold">
+              <i class="fa-solid fa-xmark"></i>
+            </button>`
+          : '';
+
+        const adminOnlyButtons = !isVolunteer ? `
+          <button onclick='openEditModal(${JSON.stringify(s).replace(/'/g, "&apos;")})' title="Edit Student Details & Email" class="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 transition">
+            <i class="fa-solid fa-pen-to-square text-xs"></i>
+          </button>
+          <button onclick="sendSingleEmail(${s.id})" title="Send Pass Email" class="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 transition">
+            <i class="fa-regular fa-paper-plane text-xs"></i>
+          </button>
+          <button onclick="deleteStudent(${s.id}, '${s.name.replace(/'/g, "\\'")}')" title="Delete Student" class="p-1.5 rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 transition">
+            <i class="fa-regular fa-trash-can text-xs"></i>
+          </button>
+        ` : '';
+
+        return `
+          <tr class="hover:bg-slate-50 transition">
+            <td class="py-3 px-4">
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-bold flex items-center justify-center text-xs shrink-0">
+                  ${s.name.charAt(0)}
+                </div>
+                <div>
+                  <p class="font-bold text-slate-900">${s.name}</p>
+                  <p class="text-[10px] text-slate-500 font-mono">${s.qr_token}</p>
+                </div>
+              </div>
+            </td>
+            <td class="py-3 px-4">
+              <p class="font-mono text-slate-900 font-bold">${s.roll_no}</p>
+              <p class="font-mono text-[10px] text-slate-500">PRN: ${s.prn_no}</p>
+            </td>
+            <td class="py-3 px-4 text-slate-700 font-medium">
+              <p class="font-semibold text-slate-900">${s.department}</p>
+              ${s.division ? `<span class="inline-block mt-0.5 text-[10px] font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200">Div: ${s.division}</span>` : ''}
+              ${s.class && s.class !== s.department ? `<span class="text-[10px] text-slate-500 block">${s.class}</span>` : ''}
+            </td>
+            <td class="py-3 px-4">
+              <p class="text-slate-800">${s.email}</p>
+              <p class="text-[10px] text-slate-500">${s.phone || '—'}</p>
+              ${s.transaction_id ? `<p class="text-[9px] font-mono text-slate-400">Txn: ${s.transaction_id}</p>` : ''}
+            </td>
+            <td class="py-3 px-4 text-center">${entryBadge}</td>
+            <td class="py-3 px-4 text-center">${mailBadge}</td>
+            <td class="py-3 px-4 text-right">
+              <div class="inline-flex items-center gap-1.5">
+                ${admitAction}
+                ${rejectAction}
+                <button onclick='viewPass(${JSON.stringify(s)})' title="View QR Pass" class="p-1.5 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 border border-slate-200 transition">
+                  <i class="fa-solid fa-qrcode text-xs"></i>
+                </button>
+                ${adminOnlyButtons}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function updatePagination(pagination) {
+      document.getElementById('pageInfo').textContent = `Page ${pagination.page} of ${pagination.totalPages} (${pagination.total} records)`;
+      document.getElementById('btnPrevPage').disabled = pagination.page <= 1;
+      document.getElementById('btnNextPage').disabled = pagination.page >= pagination.totalPages;
+    }
+
+    document.getElementById('btnPrevPage').addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        fetchStudents();
+      }
+    });
+
+    document.getElementById('btnNextPage').addEventListener('click', () => {
+      currentPage++;
+      fetchStudents();
+    });
+
+    // Real-time filters
+    document.getElementById('searchInput').addEventListener('input', () => { currentPage = 1; fetchStudents(); });
+    document.getElementById('deptFilter').addEventListener('change', () => { currentPage = 1; fetchStudents(); });
+    document.getElementById('entryStatusFilter').addEventListener('change', () => { currentPage = 1; fetchStudents(); });
+    document.getElementById('mailStatusFilter').addEventListener('change', () => { currentPage = 1; fetchStudents(); });
+
+    // Quick Accept Action from directory
+    async function quickAction(studentId, action, studentName, force = false) {
+      if (force && !confirm(`⚠️ ${studentName} is already marked as admitted. Re-verify?`)) {
+        return;
+      }
+      try {
+        const res = await API.request('/api/scan/action', {
+          method: 'POST',
+          body: JSON.stringify({
+            studentId,
+            action,
+            forceAccept: force
+          })
+        });
+        API.toast(res.message, 'success');
+        fetchStudents();
+      } catch (err) {
+        API.toast(err.message, 'error');
+      }
+    }
+
+    // Quick Reject Prompt from directory
+    async function quickRejectPrompt(studentId, studentName) {
+      const reason = prompt(`Specify rejection reason for ${studentName}:`, 'No ID proof / Refused entry');
+      if (reason === null) return;
+
+      try {
+        const res = await API.request('/api/scan/action', {
+          method: 'POST',
+          body: JSON.stringify({
+            studentId,
+            action: 'reject',
+            reason: reason || 'Refused at gate'
+          })
+        });
+        API.toast(res.message, 'warning');
+        fetchStudents();
+      } catch (err) {
+        API.toast(err.message, 'error');
+      }
+    }
+
+    // View Pass Modal
+    function viewPass(student) {
+      document.getElementById('modalQrImg').src = student.qr_code_image || '';
+      document.getElementById('modalToken').textContent = student.qr_token;
+      document.getElementById('modalName').textContent = student.name;
+      document.getElementById('modalRoll').textContent = student.roll_no;
+      document.getElementById('modalPrn').textContent = student.prn_no;
+      document.getElementById('modalDept').textContent = student.department;
+      
+      const statusEl = document.getElementById('modalStatus');
+      statusEl.textContent = student.entry_status.toUpperCase();
+      statusEl.className = student.entry_status === 'accepted' ? 'text-emerald-700 font-bold' :
+                           student.entry_status === 'rejected' ? 'text-rose-700 font-bold' :
+                           'text-slate-600 font-bold';
+
+      document.getElementById('modalPublicLink').href = `/pass.html?token=${student.qr_token}`;
+      document.getElementById('passModal').classList.remove('hidden');
+    }
+
+    function closePassModal() {
+      document.getElementById('passModal').classList.add('hidden');
+    }
+
+    // Add Student Modal (Admin)
+    function openAddModal() {
+      document.getElementById('addModal').classList.remove('hidden');
+    }
+    function closeAddModal() {
+      document.getElementById('addModal').classList.add('hidden');
+    }
+
+    if (document.getElementById('addStudentForm')) {
+      document.getElementById('addStudentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+          name: document.getElementById('addName').value,
+          roll_no: document.getElementById('addRoll').value,
+          prn_no: document.getElementById('addPrn').value,
+          department: document.getElementById('addDept').value,
+          email: document.getElementById('addEmail').value,
+          phone: document.getElementById('addPhone').value
+        };
+
+        try {
+          const res = await API.request('/api/students', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+          });
+          API.toast(res.message, 'success');
+          closeAddModal();
+          document.getElementById('addStudentForm').reset();
+          fetchStudents();
+        } catch (err) {
+          API.toast(err.message, 'error');
+        }
+      });
+    }
+
+    // Edit Student Modal (Admin)
+    function openEditModal(student) {
+      document.getElementById('editStudentId').value = student.id;
+      document.getElementById('editTokenDisplay').textContent = student.qr_token || 'N/A';
+      document.getElementById('editName').value = student.name || '';
+      document.getElementById('editEmail').value = student.email || '';
+      document.getElementById('editRoll').value = student.roll_no || '';
+      document.getElementById('editPrn').value = student.prn_no || '';
+      document.getElementById('editDept').value = student.department || '';
+      document.getElementById('editPhone').value = student.phone || '';
+      document.getElementById('editResendEmail').checked = false;
+      document.getElementById('editNewToken').checked = false;
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    if (document.getElementById('editStudentForm')) {
+      document.getElementById('editStudentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('editStudentId').value;
+        const payload = {
+          name: document.getElementById('editName').value,
+          email: document.getElementById('editEmail').value,
+          roll_no: document.getElementById('editRoll').value,
+          prn_no: document.getElementById('editPrn').value,
+          department: document.getElementById('editDept').value,
+          phone: document.getElementById('editPhone').value,
+          resend_email: document.getElementById('editResendEmail').checked,
+          issue_new_token: document.getElementById('editNewToken').checked
+        };
+
+        const btn = document.getElementById('btnEditSubmit');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Saving & Updating QR...`;
+
+        try {
+          const res = await API.request(`/api/students/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+          });
+          API.toast(res.message, 'success');
+          closeEditModal();
+          fetchStudents();
+        } catch (err) {
+          API.toast(err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>Save & Apply Updates</span>`;
+        }
+      });
+    }
+
+    // Delete Student (Admin)
+    async function deleteStudent(id, name) {
+      if (!confirm(`Are you sure you want to delete ${name}? This will invalidate their QR entry pass.`)) return;
+      try {
+        await API.request(`/api/students/${id}`, { method: 'DELETE' });
+        API.toast(`Deleted ${name}`, 'success');
+        fetchStudents();
+      } catch (err) {
+        API.toast(err.message, 'error');
+      }
+    }
+
+    // Send single email (Admin)
+    async function sendSingleEmail(id) {
+      API.toast('Dispatching pass email...', 'info');
+      try {
+        const res = await API.request(`/api/email/send/${id}`, { method: 'POST' });
+        API.toast(res.message, 'success');
+        fetchStudents();
+      } catch (err) {
+        API.toast(err.message, 'error');
+      }
+    }
+
+    fetchStudents();
+  </script>
+</body>
+</html>

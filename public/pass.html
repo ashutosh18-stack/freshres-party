@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VIP Entry Pass - Fresher Fiesta 2026</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen flex items-center justify-center p-3 sm:p-6 antialiased">
+
+  <div class="w-full max-w-sm mx-auto">
+    
+    <!-- Pass Card Wrapper -->
+    <div id="passCard" class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden text-center transition duration-200">
+      
+      <!-- Header Banner -->
+      <div class="bg-blue-600 p-6 text-white text-center relative shadow-sm">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-[10px] font-extrabold uppercase tracking-widest text-white border border-white/20 mb-2">
+          <i class="fa-solid fa-star text-[8px] text-white"></i>
+          <span>Official VIP Entry Pass</span>
+        </div>
+        <h1 id="eventTitle" class="text-xl sm:text-2xl font-black uppercase tracking-tight">Fresher Fiesta 2026</h1>
+        <p class="text-xs text-blue-100 mt-0.5">Welcome Freshers • Grand Celebration</p>
+      </div>
+
+      <!-- QR Code & Token Box -->
+      <div class="p-5 sm:p-6 space-y-4">
+        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl inline-block shadow-sm">
+          <img id="qrImage" src="" alt="Pass QR Code" class="w-44 h-44 sm:w-48 sm:h-48 block mx-auto">
+        </div>
+
+        <div>
+          <span id="passToken" class="font-mono text-xs text-blue-700 font-bold bg-blue-50 border border-blue-200 px-3.5 py-1.5 rounded-xl tracking-wider inline-block">
+            LOADING...
+          </span>
+        </div>
+
+        <!-- Live Gate Status Badge -->
+        <div id="statusBadge" class="p-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 bg-slate-100 text-slate-700 border border-slate-200">
+          <i class="fa-solid fa-circle-notch fa-spin text-blue-600"></i>
+          <span>Checking Gate Status...</span>
+        </div>
+
+        <!-- Student Info Details -->
+        <div class="bg-slate-50 rounded-2xl p-4 text-left border border-slate-200 space-y-2 text-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-200">
+            <span class="text-slate-500 font-medium">Student Name</span>
+            <strong id="studentName" class="text-slate-900 text-sm font-bold">--</strong>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 font-medium">Roll Number</span>
+            <span id="studentRoll" class="text-slate-800 font-mono font-bold">--</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 font-medium">PRN Number</span>
+            <span id="studentPrn" class="text-slate-800 font-mono font-bold">--</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-slate-500 font-medium">Department</span>
+            <span id="studentDept" class="text-blue-700 font-semibold">--</span>
+          </div>
+        </div>
+
+        <!-- Event Logistics -->
+        <div class="bg-blue-50/60 rounded-xl p-3 border border-blue-100 text-left text-[11px] space-y-1">
+          <p class="text-slate-700">📍 <strong class="text-slate-900">Venue:</strong> <span id="eventVenue">Grand University Auditorium</span></p>
+          <p class="text-slate-700">🗓️ <strong class="text-slate-900">Date & Time:</strong> <span id="eventDate">Nov 15, 2026 at 5:00 PM</span></p>
+        </div>
+
+        <!-- Important Note -->
+        <p class="text-[10px] text-slate-500 leading-tight">
+          ⚠️ Single entry only. Show this QR code to the gate volunteers along with your student ID card.
+        </p>
+      </div>
+
+      <!-- Pass Footer -->
+      <div class="p-3.5 bg-slate-50 border-t border-slate-200 text-[10px] text-slate-500 flex items-center justify-between font-medium">
+        <span>Official Student Council</span>
+        <button onclick="window.print()" class="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-print"></i> Print / Save
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Error container if invalid pass token -->
+    <div id="errorCard" class="hidden bg-white rounded-2xl p-8 text-center space-y-4 border border-rose-200 shadow-sm">
+      <div class="w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center text-2xl mx-auto">
+        <i class="fa-solid fa-circle-xmark"></i>
+      </div>
+      <h3 class="text-lg font-bold text-slate-900">Invalid or Expired Pass</h3>
+      <p class="text-xs text-slate-500">The QR token does not exist in our party entry database.</p>
+    </div>
+
+  </div>
+
+  <script>
+    function getTokenFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('token')) return urlParams.get('token');
+
+      const parts = window.location.pathname.split('/');
+      const last = parts[parts.length - 1];
+      if (last && last !== 'pass.html' && last !== 'pass') {
+        return last;
+      }
+      return null;
+    }
+
+    async function loadPass() {
+      const token = getTokenFromUrl();
+      if (!token) {
+        showError('No pass token specified in the URL.');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/public/pass/${encodeURIComponent(token)}`);
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to load pass.');
+        }
+
+        const pass = data.pass;
+        const event = data.event;
+
+        document.getElementById('eventTitle').textContent = event.name;
+        document.getElementById('eventVenue').textContent = event.venue;
+        document.getElementById('eventDate').textContent = event.date;
+
+        document.getElementById('studentName').textContent = pass.name;
+        document.getElementById('studentRoll').textContent = pass.roll_no;
+        document.getElementById('studentPrn').textContent = pass.prn_no;
+        document.getElementById('studentDept').textContent = pass.department;
+        document.getElementById('passToken').textContent = pass.qr_token;
+        document.getElementById('qrImage').src = pass.qr_code_image;
+
+        const badge = document.getElementById('statusBadge');
+        if (pass.entry_status === 'accepted') {
+          badge.className = 'p-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800';
+          badge.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600"></i> <span>ADMITTED AT GATE (${new Date(pass.verified_at).toLocaleTimeString()})</span>`;
+        } else if (pass.entry_status === 'rejected') {
+          badge.className = 'p-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 bg-rose-50 border border-rose-200 text-rose-800';
+          badge.innerHTML = `<i class="fa-solid fa-circle-xmark text-rose-600"></i> <span>ENTRY REJECTED</span>`;
+        } else {
+          badge.className = 'p-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 bg-blue-50 border border-blue-200 text-blue-800';
+          badge.innerHTML = `<i class="fa-solid fa-shield-check text-blue-600"></i> <span>VALID PASS • READY FOR GATE ENTRY</span>`;
+        }
+
+      } catch (err) {
+        showError(err.message);
+      }
+    }
+
+    function showError(msg) {
+      document.getElementById('passCard').classList.add('hidden');
+      const errCard = document.getElementById('errorCard');
+      errCard.classList.remove('hidden');
+      errCard.querySelector('p').textContent = msg;
+    }
+
+    loadPass();
+  </script>
+</body>
+</html>
