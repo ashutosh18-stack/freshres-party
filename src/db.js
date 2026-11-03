@@ -146,6 +146,13 @@ async function initDB() {
       );
     }
 
+    // 6. Auto-Restore data if fresh empty database
+    const { autoRestoreIfEmpty, startAutoSync } = require('./utils/autoSync');
+    await autoRestoreIfEmpty(pool);
+
+    // 7. Start 30-second automatic backup to database_backup/ folder
+    startAutoSync(pool);
+
     return pool;
   } catch (error) {
     console.error('[DB] Database initialization error:', error.message);

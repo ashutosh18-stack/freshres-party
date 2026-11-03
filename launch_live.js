@@ -161,6 +161,7 @@ function displayBanner(url) {
   console.log('     📱 Volunteer: volunteer@fresher.party  /  volunteer123');
   console.log('----------------------------------------------------------------------');
   console.log(' 📋  Notice: The live link has been automatically COPIED to your clipboard!');
+  console.log(' 💾  Auto-Sync: Data auto-saves every 30 seconds into database_backup/ (Portable!)');
   console.log(' 🚀  Opening in your default browser right now...');
   console.log('======================================================================');
   console.log(' 💡  KEEP THIS CMD WINDOW OPEN while you want the system to be live.');
