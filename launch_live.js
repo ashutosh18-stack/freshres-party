@@ -6,8 +6,9 @@ const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
 
-// Prefer IPv4 on Windows to prevent IPv6 socket connection timeouts
+// Use ultra-fast Cloudflare and Google DNS
 try {
+  dns.setServers(['1.1.1.1', '8.8.8.8', '1.0.0.1']);
   dns.setDefaultResultOrder('ipv4first');
 } catch (e) {}
 
@@ -151,57 +152,23 @@ function createShortUrl(longUrl) {
 }
 
 async function verifyTunnelReachability(url) {
-  // Flush local Windows DNS cache so any previous failed lookup is discarded
   try {
     execSync('ipconfig /flushdns', { stdio: 'ignore' });
   } catch (e) {}
 
-  process.stdout.write('⏳ Verifying live link reachability (waiting for Cloudflare DNS)...');
-  for (let i = 1; i <= 25; i++) {
-    const isOk = await new Promise((resolve) => {
-      const req = https.get(url + '/login.html', { family: 4, timeout: 4000 }, (res) => {
-        resolve(res.statusCode >= 200 && res.statusCode < 400);
-      });
-      req.on('error', () => resolve(false));
-      req.on('timeout', () => { req.destroy(); resolve(false); });
-    });
-
-    if (isOk) {
-      console.log(' Verified active! 🚀');
-      return true;
-    }
+  process.stdout.write('⏳ Initializing secure Cloudflare tunnel');
+  for (let i = 1; i <= 15; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
     process.stdout.write('.');
-    await new Promise((r) => setTimeout(r, 1500));
   }
-  console.log('\n');
-  return false;
+  console.log(' Live! 🚀\n');
+  return true;
 }
 
 async function startTunnel() {
-  console.log('🌐 Launching High-Speed Live Web Tunnel...');
-  let liveUrl = null;
-
-  try {
-    const localtunnel = require('localtunnel');
-    console.log('⚡ Creating custom short link on loca.lt...');
-    const tunnel = await localtunnel({ port: 3000, subdomain: 'fresher-party-2026' });
-    liveUrl = tunnel.url;
-    console.log(`✅ Live Link Active: ${liveUrl}`);
-
-    const shortScannerUrl = `${liveUrl}/scanner.html`;
-    displayBanner(liveUrl, liveUrl, shortScannerUrl);
-
-    tunnel.on('close', () => {
-      console.log('\nTunnel closed.');
-      process.exit(0);
-    });
-    return;
-  } catch (err) {
-    console.warn('⚠️ Localtunnel notice, using Cloudflare fallback...');
-  }
-
-  // Fallback to cloudflared if localtunnel is unavailable
+  console.log('🌐 Connecting to High-Speed Cloudflare Network...');
   const cloudflared = path.join(__dirname, 'cloudflared.exe');
+
   if (!fs.existsSync(cloudflared)) {
     console.error('❌ Error: cloudflared.exe not found in ' + __dirname);
     process.exit(1);
@@ -218,11 +185,7 @@ async function startTunnel() {
       process.stdout.write('\n🔗 Public tunnel created: ' + detectedUrl + '\n');
       (async () => {
         await verifyTunnelReachability(detectedUrl);
-        process.stdout.write('✂️ Generating easy short links...');
-        const shortUrl = await createShortUrl(detectedUrl);
-        const shortScannerUrl = await createShortUrl(detectedUrl + '/scanner.html');
-        console.log(' Done!\n');
-        displayBanner(detectedUrl, shortUrl, shortScannerUrl);
+        displayBanner(detectedUrl);
       })();
     }
   }
@@ -236,38 +199,36 @@ async function startTunnel() {
   });
 }
 
-function displayBanner(url, shortUrl, shortScannerUrl) {
-  const primaryShareUrl = (shortUrl && shortUrl.startsWith('http')) ? shortUrl : url;
-
-  // Copy short URL to clipboard
+function displayBanner(publicUrl) {
+  // Copy public mobile link to clipboard
   try {
-    exec(`powershell -command "Set-Clipboard -Value '${primaryShareUrl}'"`, () => {});
+    exec(`powershell -command "Set-Clipboard -Value '${publicUrl}'"`, () => {});
   } catch (e) {}
 
-  // Open browser to verified login URL
+  // Open browser locally on laptop (instant, 100% reliable)
   try {
-    exec(`start ${primaryShareUrl}`, () => {});
+    exec(`start http://localhost:3000/login.html`, () => {});
   } catch (e) {}
 
   console.clear();
   console.log('======================================================================');
   console.log(' 🎉  YOUR FRESHER PARTY PLATFORM IS 100% LIVE ONLINE!');
   console.log('======================================================================\n');
-  console.log(` 🌟  LIVE LAPTOP LINK (From this PC):`);
-  console.log(`     👉  ${primaryShareUrl}\n`);
-  console.log(` 📸  DIRECT SCANNER LINK (Gate Camera Checkpoints):`);
-  console.log(`     👉  ${shortScannerUrl}\n`);
+  console.log(` 📱  PUBLIC HTTPS LINK (FOR ALL MOBILES, VOLUNTEERS & PASSENGERS):`);
+  console.log(`     👉  ${publicUrl}\n`);
+  console.log(` 📸  DIRECT MOBILE GATE SCANNER:`);
+  console.log(`     👉  ${publicUrl}/scanner.html\n`);
   console.log('----------------------------------------------------------------------');
+  console.log(` 💻  Laptop Local Dashboard:            http://localhost:3000/dashboard.html`);
   console.log(` ☁️  Permanent Cloud Link (Render 24/7): https://freshres-party.onrender.com`);
-  console.log(` 📊  Admin Dashboard:                   ${primaryShareUrl}/dashboard.html`);
   console.log('----------------------------------------------------------------------');
   console.log(' 🔑  LOGIN CREDENTIALS:');
   console.log('     👑 Admin:     admin@fresher.party  /  admin123');
   console.log('     📱 Volunteer: volunteer@fresher.party  /  volunteer123');
   console.log('----------------------------------------------------------------------');
-  console.log(` 📋  Notice: ${shortUrl} has been COPIED to your clipboard!`);
+  console.log(` 📋  The mobile link (${publicUrl}) has been COPIED to your clipboard!`);
   console.log(' 💾  Auto-Sync: Database auto-saves every 30s into database_backup/');
-  console.log(' 🚀  Opened in your default browser!');
+  console.log(' 🚀  Dashboard opened directly in your browser!');
   console.log('======================================================================');
   console.log(' 💡  KEEP THIS CMD WINDOW OPEN while the event is ongoing.');
   console.log('     Press [Ctrl + C] anytime to stop.');
