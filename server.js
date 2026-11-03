@@ -121,20 +121,25 @@ async function startServer() {
       console.log(`🎟️ Passes Center:  http://localhost:${PORT}/passes.html`);
     });
 
-    // 2. Secure HTTPS Server (Unlocks Camera on Mobile Browsers)
-    const ssl = await getOrCreateCertificates();
-    const httpsServer = https.createServer(ssl, app);
-    httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
-      const ips = getLocalIpAddresses();
-      const primaryIp = ips[0] || 'localhost';
-      console.log(`----------------------------------------------------`);
-      console.log(`🔒 Secure HTTPS Enabled (Camera access on phones!):`);
-      console.log(`📱 Mobile Scanner: https://${primaryIp}:${HTTPS_PORT}/scanner.html`);
-      console.log(`💻 Local HTTPS:    https://localhost:${HTTPS_PORT}/scanner.html`);
-      console.log(`====================================================`);
-      console.log(`Security: Rate-limiting & Brute-force protection ACTIVE.`);
-      console.log(`====================================================`);
-    });
+    // 2. Secure HTTPS Server (Unlocks Camera on Mobile Browsers in local dev)
+    // Cloud platforms like Render provide automatic HTTPS at the edge
+    if (!process.env.RENDER && process.env.NODE_ENV !== 'production') {
+      try {
+        const ssl = await getOrCreateCertificates();
+        const httpsServer = https.createServer(ssl, app);
+        httpsServer.listen(HTTPS_PORT, '0.0.0.0', () => {
+          const ips = getLocalIpAddresses();
+          const primaryIp = ips[0] || 'localhost';
+          console.log(`----------------------------------------------------`);
+          console.log(`🔒 Secure HTTPS Enabled (Camera access on phones!):`);
+          console.log(`📱 Mobile Scanner: https://${primaryIp}:${HTTPS_PORT}/scanner.html`);
+          console.log(`💻 Local HTTPS:    https://localhost:${HTTPS_PORT}/scanner.html`);
+          console.log(`====================================================`);
+        });
+      } catch (sslErr) {
+        console.warn('[HTTPS] Skipped local HTTPS setup:', sslErr.message);
+      }
+    }
   } catch (error) {
     console.error('Failed to initialize and start server:', error);
     process.exit(1);

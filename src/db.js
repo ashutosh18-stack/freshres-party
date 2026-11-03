@@ -14,22 +14,20 @@ const dbConfig = {
   ...(isRemoteDb || process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {})
 };
 
-const DB_NAME = process.env.DB_NAME || 'fresher_party_db';
+const DB_NAME = process.env.DB_NAME || (isRemoteDb ? 'test' : 'fresher_party_db');
 
 let pool;
 
 async function initDB() {
   try {
-    // 1. On local XAMPP MySQL, ensure database exists
-    if (!isRemoteDb) {
-      try {
-        const connection = await mysql.createConnection(dbConfig);
-        await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
-        await connection.end();
-        console.log(`[DB] Connected to MySQL server at ${dbConfig.host}:${dbConfig.port}`);
-      } catch (err) {
-        console.warn(`[DB] Note: Could not auto-create database (might already exist):`, err.message);
-      }
+    // 1. Ensure target database exists
+    try {
+      const connection = await mysql.createConnection(dbConfig);
+      await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
+      await connection.end();
+      console.log(`[DB] Database "${DB_NAME}" ensured on ${dbConfig.host}:${dbConfig.port}`);
+    } catch (err) {
+      console.warn(`[DB] Note: Could not auto-create database "${DB_NAME}":`, err.message);
     }
 
     // 2. Create pool connected to the database
