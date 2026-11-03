@@ -311,6 +311,54 @@ const API = {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(initSidebarState, 100);
     });
+
+    // ── Fullscreen Buttons Initialization ──
+    this.initFullScreenButtons();
+  },
+
+  toggleFullScreen() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) {
+        docEl.requestFullscreen().catch(() => {});
+      } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+      }
+      this.toast('Full Screen activated', 'info', 1500);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+      this.toast('Exited Full Screen', 'info', 1500);
+    }
+  },
+
+  initFullScreenButtons() {
+    const updateIcons = () => {
+      const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      document.querySelectorAll('.btn-fullscreen-toggle').forEach(btn => {
+        const icon = btn.querySelector('i');
+        const text = btn.querySelector('.fs-text');
+        if (icon) {
+          icon.className = isFS ? 'fa-solid fa-compress text-blue-600' : 'fa-solid fa-expand text-blue-600';
+        }
+        if (text) {
+          text.textContent = isFS ? 'Exit Full Screen' : 'Full Screen';
+        }
+      });
+    };
+
+    document.querySelectorAll('.btn-fullscreen-toggle').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.toggleFullScreen();
+      });
+    });
+
+    document.addEventListener('fullscreenchange', updateIcons);
+    document.addEventListener('webkitfullscreenchange', updateIcons);
   }
 };
 
