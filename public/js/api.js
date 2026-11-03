@@ -21,6 +21,8 @@ const API = {
   clearAuth() {
     localStorage.removeItem('fp_token');
     localStorage.removeItem('fp_user');
+    localStorage.removeItem('fullscreen_locked');
+    localStorage.removeItem('dashboard_manual_exit');
   },
 
   async request(url, options = {}) {
@@ -66,6 +68,10 @@ const API = {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (e) {}
     this.clearAuth();
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    }
     window.location.href = '/login.html';
   },
 
@@ -312,30 +318,81 @@ const API = {
       resizeTimer = setTimeout(initSidebarState, 100);
     });
 
-    // ── Fullscreen Buttons Initialization ──
-    this.initFullScreenButtons();
+    // ── Fullscreen System Initialization ──
+    this.initFullScreenSystem();
+  },
+
+  isDashboard() {
+    const p = window.location.pathname.toLowerCase();
+    return p.endsWith('/dashboard.html') || p.endsWith('/dashboard') || p === '/dashboard.html';
+  },
+
+  requestFullScreen() {
+    const docEl = document.documentElement;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      if (docEl.requestFullscreen) {
+        return docEl.requestFullscreen().catch(() => {});
+      } else if (docEl.webkitRequestFullscreen) {
+        return docEl.webkitRequestFullscreen();
+      }
+    }
+  },
+
+  exitFullScreen() {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        return document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        return document.webkitExitFullscreen();
+      }
+    }
   },
 
   toggleFullScreen() {
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-      const docEl = document.documentElement;
-      if (docEl.requestFullscreen) {
-        docEl.requestFullscreen().catch(() => {});
-      } else if (docEl.webkitRequestFullscreen) {
-        docEl.webkitRequestFullscreen();
+      this.requestFullScreen();
+      if (this.isDashboard()) {
+        localStorage.removeItem('dashboard_manual_exit');
       }
       this.toast('Full Screen activated', 'info', 1500);
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
+      this.exitFullScreen();
+      if (this.isDashboard()) {
+        localStorage.setItem('dashboard_manual_exit', 'true');
       }
       this.toast('Exited Full Screen', 'info', 1500);
     }
   },
 
-  initFullScreenButtons() {
+  initFullScreenSystem() {
+    const p = window.location.pathname.toLowerCase();
+    const isLogin = p.endsWith('/login.html') || p.endsWith('/login') || p.endsWith('/index.html') || p === '/';
+    const isPublicPass = p.includes('pass.html') || p.startsWith('/pass/');
+    if (isLogin || isPublicPass) return;
+
+    const isDash = this.isDashboard();
+
+    if (!isDash) {
+      // 1. On non-dashboard pages, remove any Fullscreen toggle buttons (only dashboard keeps it)
+      document.querySelectorAll('.btn-fullscreen-toggle').forEach(btn => btn.remove());
+
+      // 2. Clear dashboard manual exit flag on navigation to other pages
+      localStorage.removeItem('dashboard_manual_exit');
+
+      // 3. Enforce Full Screen Lock
+      this.enforceFullScreenLock();
+    } else {
+      // On dashboard: keep the fullscreen and exit fullscreen toggle buttons
+      this.initDashboardFullScreenButtons();
+
+      // If user hasn't explicitly exited on dashboard, attempt fullscreen automatically
+      if (!localStorage.getItem('dashboard_manual_exit')) {
+        this.requestFullScreen();
+      }
+    }
+  },
+
+  initDashboardFullScreenButtons() {
     const updateIcons = () => {
       const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
       document.querySelectorAll('.btn-fullscreen-toggle').forEach(btn => {
@@ -347,6 +404,7 @@ const API = {
         if (text) {
           text.textContent = isFS ? 'Exit Full Screen' : 'Full Screen';
         }
+        btn.title = isFS ? 'Exit Full Screen' : 'Full Screen';
       });
     };
 
@@ -359,8 +417,82 @@ const API = {
 
     document.addEventListener('fullscreenchange', updateIcons);
     document.addEventListener('webkitfullscreenchange', updateIcons);
+    updateIcons();
+  },
+
+  enforceFullScreenLock() {
+    // Attempt fullscreen immediately
+    this.requestFullScreen();
+
+    // Create fullscreen lock modal overlay if not exists
+    let overlay = document.getElementById('fs-lock-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'fs-lock-overlay';
+      overlay.style.cssText = 'position:fixed; inset:0; z-index:9999999; background:rgba(15,23,42,0.96); backdrop-filter:blur(10px); display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; color:#ffffff; cursor:pointer; user-select:none;';
+      overlay.innerHTML = `
+        <div style="width:72px; height:72px; border-radius:50%; background:#2563eb; display:flex; align-items:center; justify-content:center; margin-bottom:18px; box-shadow:0 0 30px rgba(37,99,235,0.5);">
+          <i class="fa-solid fa-expand" style="font-size:28px; color:#ffffff;"></i>
+        </div>
+        <h2 style="font-size:22px; font-weight:800; margin-bottom:8px; letter-spacing:0.5px;">Full Screen Mode Locked</h2>
+        <p style="font-size:13px; color:#94a3b8; max-width:380px; margin-bottom:24px; line-height:1.6;">
+          This gate platform is locked to full screen mode for security and operations.
+        </p>
+        <button style="padding:13px 32px; background:#2563eb; color:#ffffff; font-weight:800; font-size:14px; border:none; border-radius:14px; display:inline-flex; align-items:center; gap:10px; cursor:pointer; box-shadow:0 6px 18px rgba(37,99,235,0.4);">
+          <i class="fa-solid fa-lock"></i> Tap Anywhere to Resume Full Screen
+        </button>
+      `;
+      document.body.appendChild(overlay);
+
+      // Clicking anywhere on the overlay re-enters fullscreen
+      overlay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.requestFullScreen();
+      });
+    }
+
+    const checkLockState = () => {
+      const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFS) {
+        overlay.style.display = 'flex';
+      } else {
+        overlay.style.display = 'none';
+        // Attempt keyboard lock on Escape if supported
+        if (navigator.keyboard && navigator.keyboard.lock) {
+          navigator.keyboard.lock(['Escape']).catch(() => {});
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', checkLockState);
+    document.addEventListener('webkitfullscreenchange', checkLockState);
+
+    // Any touch/click interaction on window ensures fullscreen if not already in fullscreen
+    window.addEventListener('click', () => {
+      const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFS) {
+        this.requestFullScreen();
+      }
+    }, { capture: true });
+
+    window.addEventListener('touchstart', () => {
+      const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFS) {
+        this.requestFullScreen();
+      }
+    }, { capture: true });
+
+    // Initial check after short delay
+    setTimeout(checkLockState, 300);
   }
 };
+
+// Automatic startup of Fullscreen system on document ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => API.initFullScreenSystem());
+} else {
+  API.initFullScreenSystem();
+}
 
 window.API = API;
 
