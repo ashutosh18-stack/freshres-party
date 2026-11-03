@@ -199,10 +199,29 @@ async function startTunnel() {
   });
 }
 
-function displayBanner(publicUrl) {
-  // Copy public mobile link to clipboard
+async function displayBanner(publicUrl) {
+  // Save status to public/live_status.json for web UI consumption
   try {
-    exec(`powershell -command "Set-Clipboard -Value '${publicUrl}'"`, () => {});
+    const statusFile = path.join(__dirname, 'public', 'live_status.json');
+    fs.writeFileSync(statusFile, JSON.stringify({
+      tunnelUrl: publicUrl,
+      scannerUrl: `${publicUrl}/scanner.html`,
+      dashboardUrl: `${publicUrl}/dashboard.html`,
+      cloudUrl: 'https://freshres-party.onrender.com',
+      updatedAt: new Date().toISOString()
+    }, null, 2));
+  } catch (e) {}
+
+  // Generate ASCII QR code for terminal
+  let terminalQR = '';
+  try {
+    const QRCode = require('qrcode');
+    terminalQR = await QRCode.toString(`${publicUrl}/scanner.html`, { type: 'terminal', small: true });
+  } catch (e) {}
+
+  // Copy public mobile scanner link to clipboard
+  try {
+    exec(`powershell -command "Set-Clipboard -Value '${publicUrl}/scanner.html'"`, () => {});
   } catch (e) {}
 
   // Open browser locally on laptop (instant, 100% reliable)
@@ -214,10 +233,17 @@ function displayBanner(publicUrl) {
   console.log('======================================================================');
   console.log(' 🎉  YOUR FRESHER PARTY PLATFORM IS 100% LIVE ONLINE!');
   console.log('======================================================================\n');
-  console.log(` 📱  PUBLIC HTTPS LINK (FOR ALL MOBILES, VOLUNTEERS & PASSENGERS):`);
-  console.log(`     👉  ${publicUrl}\n`);
-  console.log(` 📸  DIRECT MOBILE GATE SCANNER:`);
+  console.log(` 📱  MOBILE PHONE SCANNER LINK (OPEN ON VOLUNTEER PHONES):`);
   console.log(`     👉  ${publicUrl}/scanner.html\n`);
+  console.log(` 🌐  MOBILE HOME / LOGIN LINK:`);
+  console.log(`     👉  ${publicUrl}\n`);
+
+  if (terminalQR) {
+    console.log('----------------------------------------------------------------------');
+    console.log(' 📷  SCAN WITH PHONE CAMERA TO OPEN MOBILE SCANNER DIRECTLY:');
+    console.log(terminalQR);
+  }
+
   console.log('----------------------------------------------------------------------');
   console.log(` 💻  Laptop Local Dashboard:            http://localhost:3000/dashboard.html`);
   console.log(` ☁️  Permanent Cloud Link (Render 24/7): https://freshres-party.onrender.com`);
@@ -226,9 +252,9 @@ function displayBanner(publicUrl) {
   console.log('     👑 Admin:     admin@fresher.party  /  admin123');
   console.log('     📱 Volunteer: volunteer@fresher.party  /  volunteer123');
   console.log('----------------------------------------------------------------------');
-  console.log(` 📋  The mobile link (${publicUrl}) has been COPIED to your clipboard!`);
+  console.log(` 📋  Notice: Scanner link (${publicUrl}/scanner.html) COPIED to clipboard!`);
   console.log(' 💾  Auto-Sync: Database auto-saves every 30s into database_backup/');
-  console.log(' 🚀  Dashboard opened directly in your browser!');
+  console.log(' 🚀  Dashboard opened in your browser with Mobile Link Banner visible!');
   console.log('======================================================================');
   console.log(' 💡  KEEP THIS CMD WINDOW OPEN while the event is ongoing.');
   console.log('     Press [Ctrl + C] anytime to stop.');

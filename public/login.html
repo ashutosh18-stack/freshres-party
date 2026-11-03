@@ -24,6 +24,26 @@
       <p class="text-slate-500 text-xs sm:text-sm mt-1 font-medium">Entry Pass & Gate Verification Platform</p>
     </div>
 
+    <!-- Mobile Connect Banner (Visible when live link active) -->
+    <div id="mobile-live-banner" class="hidden mb-5 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-4 shadow-lg border border-blue-400/30">
+      <div class="flex items-center justify-between mb-1.5">
+        <span class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-mobile-screen-button text-amber-300"></i> Mobile Live Scanner Link
+        </span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-extrabold bg-emerald-400 text-slate-900 uppercase tracking-wider shadow-sm">
+          Live Online
+        </span>
+      </div>
+      <p class="text-[11px] text-blue-100 mb-2.5">Open this URL on phone browsers for volunteer camera gate scanning:</p>
+      <div class="flex items-center gap-2 bg-slate-950/40 border border-white/20 rounded-xl p-2">
+        <input id="mobile-link-input" type="text" readonly class="bg-transparent text-xs text-white font-mono flex-1 outline-none select-all px-1">
+        <button id="copy-mobile-link" type="button" class="px-3 py-1.5 bg-white text-blue-700 hover:bg-blue-50 text-xs font-bold rounded-lg transition active:scale-95 flex items-center gap-1.5 shadow-sm shrink-0">
+          <i class="fa-regular fa-copy"></i>
+          <span>Copy</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Login Card -->
     <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200">
       
@@ -176,6 +196,32 @@
         btnSubmit.innerHTML = `<span>Sign In to Platform</span> <i class="fa-solid fa-arrow-right text-xs"></i>`;
       }
     });
+
+    // Check & display live mobile scanner link
+    fetch('/live_status.json?t=' + Date.now())
+      .then(res => res.json())
+      .then(data => {
+        if (data && (data.scannerUrl || data.tunnelUrl)) {
+          const mobileUrl = data.scannerUrl || `${data.tunnelUrl}/scanner.html`;
+          const input = document.getElementById('mobile-link-input');
+          const banner = document.getElementById('mobile-live-banner');
+          const copyBtn = document.getElementById('copy-mobile-link');
+          
+          input.value = mobileUrl;
+          banner.classList.remove('hidden');
+          
+          copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(mobileUrl).then(() => {
+              API.toast('Mobile scanner link copied to clipboard!', 'success');
+            }).catch(() => {
+              input.select();
+              document.execCommand('copy');
+              API.toast('Link copied!', 'success');
+            });
+          });
+        }
+      })
+      .catch(() => {});
   </script>
 </body>
 </html>
