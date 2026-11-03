@@ -2,12 +2,16 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
+const isRemoteDb = (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1');
+
 const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   port: parseInt(process.env.DB_PORT || '3306', 10),
-  multipleStatements: true
+  multipleStatements: true,
+  // Cloud MySQL providers (TiDB Cloud, Aiven, etc.) require SSL
+  ...(isRemoteDb || process.env.DB_SSL === 'true' ? { ssl: { rejectUnauthorized: false } } : {})
 };
 
 const DB_NAME = process.env.DB_NAME || 'fresher_party_db';
@@ -16,13 +20,17 @@ let pool;
 
 async function initDB() {
   try {
-    // 1. Initial connection without database to create DB if needed
-    const connection = await mysql.createConnection(dbConfig);
-    console.log(`[DB] Connected to MySQL server at ${dbConfig.host}:${dbConfig.port}`);
-
-    await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
-    console.log(`[DB] Database "${DB_NAME}" ensured.`);
-    await connection.end();
+    // 1. On local XAMPP MySQL, ensure database exists
+    if (!isRemoteDb) {
+      try {
+        const connection = await mysql.createConnection(dbConfig);
+        await connection.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;`);
+        await connection.end();
+        console.log(`[DB] Connected to MySQL server at ${dbConfig.host}:${dbConfig.port}`);
+      } catch (err) {
+        console.warn(`[DB] Note: Could not auto-create database (might already exist):`, err.message);
+      }
+    }
 
     // 2. Create pool connected to the database
     pool = mysql.createPool({
