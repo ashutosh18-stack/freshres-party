@@ -1,6 +1,48 @@
 const express = require('express');
 const router = express.Router();
+const QRCode = require('qrcode');
 const { getPool } = require('../db');
+
+// GET /api/public/qr/:token.png (Direct binary QR stream for external viewers & passes)
+router.get('/qr/:token.png', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const pool = getPool();
+
+    const [students] = await pool.query(
+      'SELECT name, roll_no, prn_no, qr_token FROM students WHERE qr_token = ?',
+      [token]
+    );
+
+    if (students.length === 0) {
+      return res.status(404).send('Pass not found or invalid token.');
+    }
+
+    const s = students[0];
+    const payload = JSON.stringify({
+      app: 'FRESHER_PASS',
+      token: s.qr_token,
+      prn: s.prn_no || '',
+      roll: s.roll_no || '',
+      name: s.name || ''
+    });
+
+    const buffer = await QRCode.toBuffer(payload, {
+      errorCorrectionLevel: 'H',
+      type: 'png',
+      margin: 2,
+      width: 400,
+      color: { dark: '#1e1b4b', light: '#ffffff' }
+    });
+
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(buffer);
+  } catch (err) {
+    console.error('Public QR image error:', err);
+    res.status(500).send('Error generating QR image.');
+  }
+});
 
 // GET /api/public/pass/:token
 router.get('/pass/:token', async (req, res) => {
