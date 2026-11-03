@@ -17,6 +17,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Binaries
+cloudflared.exe
+*.exe
+
 # OS & Editor generated files
 .DS_Store
 Thumbs.db
