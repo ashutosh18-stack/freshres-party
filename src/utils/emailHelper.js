@@ -1,19 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
-const QRCode = require('qrcode');
 const { getPool } = require('../db');
 
 /**
- * Resolve public origin URL for email links so they can be opened from mobile devices
+ * Resolve public origin URL for email links
  */
 function resolvePublicOrigin(originUrl = '') {
-  // If a remote public URL was provided (not localhost / 127.0.0.1), use it
   if (originUrl && !originUrl.includes('localhost') && !originUrl.includes('127.0.0.1')) {
     return originUrl.replace(/\/+$/, '');
   }
 
-  // Check live tunnel status saved by launch_live.js
   try {
     const liveStatusFile = path.join(__dirname, '../../public/live_status.json');
     if (fs.existsSync(liveStatusFile)) {
@@ -25,16 +22,12 @@ function resolvePublicOrigin(originUrl = '') {
         return data.cloudUrl.replace(/\/+$/, '');
       }
     }
-  } catch (e) {
-    // Ignore JSON read errors
-  }
+  } catch (e) {}
 
-  // Check environment variable
   if (process.env.PUBLIC_URL && process.env.PUBLIC_URL.startsWith('http')) {
     return process.env.PUBLIC_URL.replace(/\/+$/, '');
   }
 
-  // Permanent cloud deployment fallback
   return 'https://freshres-party.onrender.com';
 }
 
@@ -47,17 +40,14 @@ async function getTransporter() {
   const settings = {};
   rows.forEach(r => { settings[r.key_name] = r.key_value; });
 
-  // Prefer process.env if provided, otherwise DB settings
   const host = process.env.SMTP_HOST || settings.smtp_host || 'smtp.gmail.com';
   const port = parseInt(process.env.SMTP_PORT || settings.smtp_port || '587', 10);
   const secure = ((process.env.SMTP_SECURE || settings.smtp_secure) === 'true' || port === 465);
   const rawUser = process.env.SMTP_USER || settings.smtp_user || '';
   const rawPass = process.env.SMTP_PASS || settings.smtp_pass || '';
   const user = rawUser.trim();
-  // Strip all whitespace from the app password (e.g. "qzuz lvjl unzf bbgv" -> "qzuzlvjlunzfbbgv")
   const pass = rawPass.replace(/\s+/g, '');
 
-  // If user/pass is empty, check if ethereal test transporter can be used or simulate
   if (!user || !pass) {
     return {
       isSimulator: true,
@@ -66,7 +56,6 @@ async function getTransporter() {
     };
   }
 
-  // Determine appropriate From address. For Gmail, sender address should match authenticated account
   let fromAddress = settings.smtp_from || process.env.SMTP_FROM;
   if (!fromAddress || (host.includes('gmail.com') && fromAddress.includes('@fresherfiesta.com'))) {
     fromAddress = `"${settings.event_name || 'Fresher Fiesta 2026'}" <${user}>`;
@@ -97,9 +86,6 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
   const eventName = settings.event_name || 'Fresher Fiesta 2026';
   const eventVenue = settings.event_venue || 'Grand University Auditorium';
   const eventDate = settings.event_date || 'November 15, 2026 at 5:00 PM';
-  
-  const publicOrigin = resolvePublicOrigin(originUrl);
-  const passUrl = `${publicOrigin}/pass/${student.qr_token}`;
 
   // Structured QR payload identical to camera gate scanner expectation
   const qrPayload = JSON.stringify({
@@ -110,7 +96,7 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
     name: student.name || ''
   });
 
-  // Public high-resolution QR image URL via high-availability CDN (Google Image Proxy safe)
+  // Public high-resolution QR image URL embedded directly inside the pass card
   const cloudQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&color=0f172a&bgcolor=ffffff&data=${encodeURIComponent(qrPayload)}`;
 
   return `
@@ -156,7 +142,7 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
                 <tr>
                   <td style="padding:24px 18px; text-align:center;">
                     
-                    <!-- QR Code Display Box -->
+                    <!-- QR Code Display Box (inside pass only) -->
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
                       <tr>
                         <td align="center" style="background:#ffffff; padding:14px; border-radius:14px; border:1px solid #e2e8f0; box-shadow:0 4px 10px rgba(0,0,0,0.05); text-align:center;">
@@ -200,7 +186,7 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
                 </tr>
               </table>
 
-              <!-- Event Details Info Box -->
+              <!-- Event Details Info Box (No Dress Code) -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#eff6ff; border-left:4px solid #2563eb; border-radius:10px; margin:0 0 22px; text-align:left;">
                 <tr>
                   <td style="padding:14px 16px;">
@@ -221,7 +207,6 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
                       <li>This QR pass is unique to you and strictly non-transferable.</li>
                       <li>Each pass allows a <strong>single entry</strong>; once scanned at the entrance gate it is automatically locked.</li>
                       <li>Keep your college ID card ready along with this QR pass.</li>
-                      <li>A PNG image of your QR code pass is also attached to this email for offline use.</li>
                     </ul>
                   </td>
                 </tr>
@@ -248,60 +233,12 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
 }
 
 /**
- * Send pass email to a single student
+ * Send pass email to a single student (no extra file attachments, QR only inside pass)
  */
 async function sendPassEmail(student, originUrl = 'http://localhost:3000') {
   const { isSimulator, transporter, from, settings } = await getTransporter();
   const subject = settings.email_subject || `🎟️ Your Entry Pass for ${settings.event_name || 'Fresher Fiesta 2026'}`;
   const html = buildPassEmailHtml(student, settings, originUrl);
-
-  const publicOrigin = resolvePublicOrigin(originUrl);
-  const passUrl = `${publicOrigin}/pass/${student.qr_token}`;
-
-  // Structured QR payload identical to camera gate scanner expectation
-  const qrPayload = JSON.stringify({
-    app: 'FRESHER_PASS',
-    token: student.qr_token,
-    prn: student.prn_no || '',
-    roll: student.roll_no || '',
-    name: student.name || ''
-  });
-
-  // Generate crisp 400x400 PNG buffer for high-res attachment
-  let qrPngBuffer;
-  try {
-    qrPngBuffer = await QRCode.toBuffer(qrPayload, {
-      errorCorrectionLevel: 'H',
-      type: 'png',
-      margin: 2,
-      width: 400,
-      color: {
-        dark: '#0f172a',
-        light: '#ffffff'
-      }
-    });
-  } catch (qrErr) {
-    console.warn('QRCode buffer generation error, falling back to base64 if present:', qrErr);
-    if (student.qr_code_image) {
-      const match = student.qr_code_image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-      if (match) {
-        qrPngBuffer = Buffer.from(match[2], 'base64');
-      }
-    }
-  }
-
-  // RFC-compliant CID for inline attachment fallback
-  const cidIdentifier = `pass-qr-${student.qr_token.toLowerCase()}@fresherfiesta.com`;
-
-  const attachments = qrPngBuffer ? [
-    {
-      filename: `pass-${student.roll_no || student.id}.png`,
-      content: qrPngBuffer,
-      contentType: 'image/png',
-      cid: cidIdentifier,
-      contentDisposition: 'attachment'
-    }
-  ] : [];
 
   if (isSimulator) {
     console.log(`[EMAIL SIMULATOR] Simulated delivery to ${student.name} <${student.email}> | Pass Token: ${student.qr_token}`);
@@ -327,16 +264,16 @@ Department: ${student.department || 'General'}
 Venue: ${settings.event_venue || 'Grand University Auditorium'}
 Date & Time: ${settings.event_date || 'November 15, 2026 at 5:00 PM'}
 
-(A scannable QR code PNG image is attached to this email. Please present it at the entrance gate).
+Please present this QR entry pass at the entrance gate.
   `.trim();
 
+  // No extra attached files - QR is only inside the pass card
   const mailOptions = {
     from,
     to: `"${student.name}" <${student.email}>`,
     subject,
     text: plainText,
-    html,
-    attachments
+    html
   };
 
   const info = await transporter.sendMail(mailOptions);
