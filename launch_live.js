@@ -1,12 +1,15 @@
-const { spawn, exec } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const net = require('net');
 const path = require('path');
 const fs = require('fs');
+require('dotenv').config();
 
 console.clear();
 console.log('====================================================');
 console.log('🚀 Initializing 1-Click Fresher Party Live System...');
 console.log('====================================================');
+
+const isRemoteDb = (process.env.DB_HOST && process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1');
 
 function checkPort(port) {
   return new Promise((resolve) => {
@@ -27,7 +30,25 @@ function checkPort(port) {
   });
 }
 
+function ensureDependencies() {
+  const nodeModulesPath = path.join(__dirname, 'node_modules');
+  if (!fs.existsSync(nodeModulesPath)) {
+    console.log('📦 First-time setup detected: Installing packages (npm install)...');
+    try {
+      execSync('npm install', { stdio: 'inherit', cwd: __dirname });
+      console.log('✅ Packages installed successfully.');
+    } catch (e) {
+      console.error('❌ Failed to run npm install. Please run it manually.');
+    }
+  }
+}
+
 async function ensureMySQL() {
+  if (isRemoteDb) {
+    console.log(`🌐 Using Remote Cloud Database (${process.env.DB_HOST}). Skipping local MySQL.`);
+    return;
+  }
+
   const isRunning = await checkPort(3306);
   if (isRunning) {
     console.log('✅ MySQL Database is running on port 3306.');
@@ -43,6 +64,8 @@ async function ensureMySQL() {
       detached: true,
       stdio: 'ignore'
     }).unref();
+  } else {
+    console.warn('⚠️ XAMPP MySQL not found at C:\\xampp. If using local DB, please ensure MySQL is started.');
   }
 
   // Wait up to 10 seconds for MySQL to be ready
@@ -147,6 +170,7 @@ function displayBanner(url) {
 
 async function main() {
   try {
+    ensureDependencies();
     await ensureMySQL();
     await ensureNodeServer();
     await startTunnel();
@@ -156,3 +180,4 @@ async function main() {
 }
 
 main();
+
