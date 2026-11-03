@@ -1,8 +1,15 @@
 const { spawn, exec, execSync } = require('child_process');
 const net = require('net');
+const https = require('https');
+const dns = require('dns');
 const path = require('path');
 const fs = require('fs');
 require('dotenv').config();
+
+// Prefer IPv4 on Windows to prevent IPv6 socket connection timeouts
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (e) {}
 
 console.clear();
 console.log('====================================================');
@@ -104,10 +111,97 @@ async function ensureNodeServer() {
   }
 }
 
-async function startTunnel() {
-  console.log('🌐 Connecting to High-Speed Cloudflare Network...');
-  const cloudflared = path.join(__dirname, 'cloudflared.exe');
+function createShortUrl(longUrl) {
+  return new Promise((resolve) => {
+    const postData = `url=${encodeURIComponent(longUrl)}`;
+    const options = {
+      hostname: 'spoo.me',
+      port: 443,
+      path: '/',
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'Content-Length': Buffer.byteLength(postData)
+      },
+      family: 4,
+      timeout: 5000
+    };
 
+    const req = https.request(options, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          if (json && json.short_url) {
+            resolve(json.short_url.replace('http://', 'https://'));
+            return;
+          }
+        } catch (e) {}
+        resolve(longUrl);
+      });
+    });
+
+    req.on('error', () => resolve(longUrl));
+    req.on('timeout', () => { req.destroy(); resolve(longUrl); });
+    req.write(postData);
+    req.end();
+  });
+}
+
+async function verifyTunnelReachability(url) {
+  // Flush local Windows DNS cache so any previous failed lookup is discarded
+  try {
+    execSync('ipconfig /flushdns', { stdio: 'ignore' });
+  } catch (e) {}
+
+  process.stdout.write('⏳ Verifying live link reachability (waiting for Cloudflare DNS)...');
+  for (let i = 1; i <= 25; i++) {
+    const isOk = await new Promise((resolve) => {
+      const req = https.get(url + '/login.html', { family: 4, timeout: 4000 }, (res) => {
+        resolve(res.statusCode >= 200 && res.statusCode < 400);
+      });
+      req.on('error', () => resolve(false));
+      req.on('timeout', () => { req.destroy(); resolve(false); });
+    });
+
+    if (isOk) {
+      console.log(' Verified active! 🚀');
+      return true;
+    }
+    process.stdout.write('.');
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+  console.log('\n');
+  return false;
+}
+
+async function startTunnel() {
+  console.log('🌐 Launching High-Speed Live Web Tunnel...');
+  let liveUrl = null;
+
+  try {
+    const localtunnel = require('localtunnel');
+    console.log('⚡ Creating custom short link on loca.lt...');
+    const tunnel = await localtunnel({ port: 3000, subdomain: 'fresher-party-2026' });
+    liveUrl = tunnel.url;
+    console.log(`✅ Live Link Active: ${liveUrl}`);
+
+    const shortScannerUrl = `${liveUrl}/scanner.html`;
+    displayBanner(liveUrl, liveUrl, shortScannerUrl);
+
+    tunnel.on('close', () => {
+      console.log('\nTunnel closed.');
+      process.exit(0);
+    });
+    return;
+  } catch (err) {
+    console.warn('⚠️ Localtunnel notice, using Cloudflare fallback...');
+  }
+
+  // Fallback to cloudflared if localtunnel is unavailable
+  const cloudflared = path.join(__dirname, 'cloudflared.exe');
   if (!fs.existsSync(cloudflared)) {
     console.error('❌ Error: cloudflared.exe not found in ' + __dirname);
     process.exit(1);
@@ -121,7 +215,15 @@ async function startTunnel() {
     const match = text.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/);
     if (match && !detectedUrl) {
       detectedUrl = match[0];
-      displayBanner(detectedUrl);
+      process.stdout.write('\n🔗 Public tunnel created: ' + detectedUrl + '\n');
+      (async () => {
+        await verifyTunnelReachability(detectedUrl);
+        process.stdout.write('✂️ Generating easy short links...');
+        const shortUrl = await createShortUrl(detectedUrl);
+        const shortScannerUrl = await createShortUrl(detectedUrl + '/scanner.html');
+        console.log(' Done!\n');
+        displayBanner(detectedUrl, shortUrl, shortScannerUrl);
+      })();
     }
   }
 
@@ -134,37 +236,40 @@ async function startTunnel() {
   });
 }
 
-function displayBanner(url) {
-  // Copy to clipboard
+function displayBanner(url, shortUrl, shortScannerUrl) {
+  const primaryShareUrl = (shortUrl && shortUrl.startsWith('http')) ? shortUrl : url;
+
+  // Copy short URL to clipboard
   try {
-    exec(`powershell -command "Set-Clipboard -Value '${url}'"`, () => {});
+    exec(`powershell -command "Set-Clipboard -Value '${primaryShareUrl}'"`, () => {});
   } catch (e) {}
 
-  // Open browser
+  // Open browser to verified login URL
   try {
-    exec(`start ${url}/login.html`, () => {});
+    exec(`start ${primaryShareUrl}`, () => {});
   } catch (e) {}
 
   console.clear();
   console.log('======================================================================');
   console.log(' 🎉  YOUR FRESHER PARTY PLATFORM IS 100% LIVE ONLINE!');
   console.log('======================================================================\n');
-  console.log(` 🌐  MAIN PUBLIC LIVE LINK (For All Devices & Mobiles):`);
-  console.log(`     👉  ${url}\n`);
-  console.log(` 📸  DIRECT MOBILE GATE SCANNER LINK:`);
-  console.log(`     👉  ${url}/scanner.html\n`);
-  console.log(` 📊  ADMIN DASHBOARD LINK:`);
-  console.log(`     👉  ${url}/dashboard.html\n`);
+  console.log(` 🌟  LIVE LAPTOP LINK (From this PC):`);
+  console.log(`     👉  ${primaryShareUrl}\n`);
+  console.log(` 📸  DIRECT SCANNER LINK (Gate Camera Checkpoints):`);
+  console.log(`     👉  ${shortScannerUrl}\n`);
+  console.log('----------------------------------------------------------------------');
+  console.log(` ☁️  Permanent Cloud Link (Render 24/7): https://freshres-party.onrender.com`);
+  console.log(` 📊  Admin Dashboard:                   ${primaryShareUrl}/dashboard.html`);
   console.log('----------------------------------------------------------------------');
   console.log(' 🔑  LOGIN CREDENTIALS:');
   console.log('     👑 Admin:     admin@fresher.party  /  admin123');
   console.log('     📱 Volunteer: volunteer@fresher.party  /  volunteer123');
   console.log('----------------------------------------------------------------------');
-  console.log(' 📋  Notice: The live link has been automatically COPIED to your clipboard!');
-  console.log(' 💾  Auto-Sync: Data auto-saves every 30 seconds into database_backup/ (Portable!)');
-  console.log(' 🚀  Opening in your default browser right now...');
+  console.log(` 📋  Notice: ${shortUrl} has been COPIED to your clipboard!`);
+  console.log(' 💾  Auto-Sync: Database auto-saves every 30s into database_backup/');
+  console.log(' 🚀  Opened in your default browser!');
   console.log('======================================================================');
-  console.log(' 💡  KEEP THIS CMD WINDOW OPEN while you want the system to be live.');
+  console.log(' 💡  KEEP THIS CMD WINDOW OPEN while the event is ongoing.');
   console.log('     Press [Ctrl + C] anytime to stop.');
   console.log('======================================================================');
 }
