@@ -91,7 +91,7 @@ async function getTransporter() {
 }
 
 /**
- * Generate VIP Fresher Party Email HTML
+ * Generate Fresher Party Email HTML
  */
 function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:3000') {
   const eventName = settings.event_name || 'Fresher Fiesta 2026';
@@ -119,7 +119,7 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${eventName} - VIP Entry Pass</title>
+  <title>${eventName} - Entry Pass</title>
 </head>
 <body style="margin:0; padding:0; background-color:#f1f5f9; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color:#0f172a; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f1f5f9; width:100%; margin:0; padding:20px 0;">
@@ -132,7 +132,7 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
           <tr>
             <td style="background:#2563eb; padding:32px 24px; text-align:center; color:#ffffff;">
               <div style="display:inline-block; background:rgba(255,255,255,0.2); padding:5px 16px; border-radius:9999px; font-size:11px; font-weight:800; color:#ffffff; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:12px;">
-                ✨ OFFICIAL VIP ENTRY PASS
+                ✨ OFFICIAL ENTRY PASS
               </div>
               <h1 style="margin:0; font-size:24px; font-weight:800; letter-spacing:0.5px; color:#ffffff; text-transform:uppercase; line-height:1.2;">
                 ${eventName}
@@ -205,18 +205,10 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
                 <tr>
                   <td style="padding:14px 16px;">
                     <p style="margin:0 0 6px; font-size:13px; color:#1e3a8a;">📍 <strong>Venue:</strong> ${eventVenue}</p>
-                    <p style="margin:0 0 6px; font-size:13px; color:#1e3a8a;">🗓️ <strong>Date & Time:</strong> ${eventDate}</p>
-                    <p style="margin:0; font-size:13px; color:#1e3a8a;">👔 <strong>Dress Code:</strong> Retro Glam / Formal Chic</p>
+                    <p style="margin:0; font-size:13px; color:#1e3a8a;">🗓️ <strong>Date & Time:</strong> ${eventDate}</p>
                   </td>
                 </tr>
               </table>
-
-              <!-- Action Button -->
-              <div style="margin:16px 0 22px;">
-                <a href="${passUrl}" target="_blank" style="display:inline-block; background-color:#2563eb; color:#ffffff !important; text-decoration:none; padding:13px 28px; border-radius:10px; font-weight:700; font-size:14px; box-shadow:0 3px 6px rgba(37,99,235,0.25);">
-                  📱 View Digital Pass on Phone
-                </a>
-              </div>
 
               <!-- Rules & Instructions -->
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; text-align:left;">
@@ -260,7 +252,7 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
  */
 async function sendPassEmail(student, originUrl = 'http://localhost:3000') {
   const { isSimulator, transporter, from, settings } = await getTransporter();
-  const subject = settings.email_subject || `🎟️ Your VIP Pass for ${settings.event_name || 'Fresher Fiesta 2026'}`;
+  const subject = settings.email_subject || `🎟️ Your Entry Pass for ${settings.event_name || 'Fresher Fiesta 2026'}`;
   const html = buildPassEmailHtml(student, settings, originUrl);
 
   const publicOrigin = resolvePublicOrigin(originUrl);
@@ -334,9 +326,6 @@ Department: ${student.department || 'General'}
 
 Venue: ${settings.event_venue || 'Grand University Auditorium'}
 Date & Time: ${settings.event_date || 'November 15, 2026 at 5:00 PM'}
-
-View Your Digital Pass on Phone:
-${passUrl}
 
 (A scannable QR code PNG image is attached to this email. Please present it at the entrance gate).
   `.trim();

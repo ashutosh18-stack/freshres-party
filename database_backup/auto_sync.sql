@@ -1,5 +1,5 @@
 -- Fresher Party Auto-Sync Backup
--- Generated: 2026-11-03T21:59:30.457Z
+-- Generated: 2026-11-03T22:07:44.379Z
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- System Settings (10)
