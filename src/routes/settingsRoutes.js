@@ -32,7 +32,7 @@ router.get('/', requireAdmin, async (req, res) => {
       smtp_secure: dbSettings.smtp_secure !== undefined && dbSettings.smtp_secure !== '' ? dbSettings.smtp_secure : (process.env.SMTP_SECURE || 'false'),
       smtp_user: dbSettings.smtp_user || process.env.SMTP_USER || '',
       smtp_from: dbSettings.smtp_from || process.env.SMTP_FROM || '',
-      email_subject: dbSettings.email_subject || '🎟️ Your Fresher Party Entry Pass is Here!'
+      email_subject: dbSettings.email_subject || '🎟️ Your VIP Fresher Party Entry Pass is Here!'
     };
 
     const hasPass = (dbSettings.smtp_pass && dbSettings.smtp_pass.trim().length > 0) || (process.env.SMTP_PASS && process.env.SMTP_PASS.trim().length > 0);

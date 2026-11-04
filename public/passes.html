@@ -116,7 +116,7 @@
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div class="space-y-1 max-w-xl">
             <span class="text-xs uppercase font-bold text-blue-600 tracking-wider">Automated Email Campaign</span>
-            <h3 class="text-base sm:text-lg font-bold text-slate-900">Broadcast Entry Passes to Registered Students</h3>
+            <h3 class="text-base sm:text-lg font-bold text-slate-900">Broadcast VIP Passes to Registered Students</h3>
             <p class="text-xs text-slate-500 leading-relaxed">
               Each student receives a personalized email with their unique event QR code pass, Roll No, PRN, and entrance guidelines.
             </p>
@@ -252,9 +252,12 @@
         </div>
       </div>
 
-      <div class="mt-4 flex items-center justify-center gap-2">
-        <a id="downloadQrBtn" href="#" download="fresher-pass-qr.png" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm">
-          <i class="fa-solid fa-download"></i> Download QR
+      <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+        <button id="btnModalForwardPass" onclick="forwardCurrentModalPass()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition active:scale-95 cursor-pointer">
+          <i class="fa-regular fa-paper-plane text-xs"></i> <span>Forward to Student Email</span>
+        </button>
+        <a id="downloadQrBtn" href="#" download="fresher-pass-qr.png" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 rounded-xl text-xs font-semibold flex items-center gap-2">
+          <i class="fa-solid fa-download text-blue-600"></i> Download QR
         </a>
       </div>
     </div>
@@ -321,7 +324,7 @@
         <div class="space-y-2 pt-2 border-t border-slate-100">
           <label class="flex items-center gap-2 text-slate-800 cursor-pointer">
             <input type="checkbox" id="editResendEmail" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
-            <span>✉️ <strong>Resend entry pass email to this address immediately</strong></span>
+            <span>✉️ <strong>Forward updated entry pass email to student now</strong></span>
           </label>
           <label class="flex items-center gap-2 text-slate-600 cursor-pointer text-[11px]">
             <input type="checkbox" id="editNewToken" class="w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
@@ -530,9 +533,9 @@
                   <a href="/api/email/preview/${s.id}" target="_blank" title="Preview Email HTML" class="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 transition">
                     <i class="fa-regular fa-eye text-xs"></i>
                   </a>
-                  <button onclick="sendSinglePass(${s.id}, '${s.name}')" title="Send Email" class="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition flex items-center gap-1 text-[11px] shadow-sm">
+                  <button onclick="sendSinglePass(${s.id}, '${s.name.replace(/'/g, "\\'")}', '${s.email}')" title="Forward Pass Email to Student" class="px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition flex items-center gap-1 text-[11px] shadow-sm active:scale-95 cursor-pointer">
                     <i class="fa-regular fa-paper-plane text-xs"></i>
-                    <span>Send</span>
+                    <span>Forward Mail</span>
                   </button>
                 </div>
               </div>
@@ -571,7 +574,10 @@
       currentPage++; loadPasses();
     });
 
+    let currentPassStudent = null;
+
     function openPassModal(student) {
+      currentPassStudent = student;
       document.getElementById('modalQrImg').src = student.qr_code_image;
       document.getElementById('modalToken').textContent = student.qr_token;
       document.getElementById('modalName').textContent = student.name;
@@ -589,6 +595,23 @@
 
     function closePassModal() {
       document.getElementById('passModal').classList.add('hidden');
+    }
+
+    async function forwardCurrentModalPass() {
+      if (!currentPassStudent) return;
+      const btn = document.getElementById('btnModalForwardPass');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-xs"></i> <span>Forwarding...</span>`;
+      }
+      try {
+        await sendSinglePass(currentPassStudent.id, currentPassStudent.name, currentPassStudent.email);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<i class="fa-regular fa-paper-plane text-xs"></i> <span>Forward to Student Email</span>`;
+        }
+      }
     }
 
     function openEditModal(student) {
@@ -646,15 +669,16 @@
       });
     }
 
-    async function sendSinglePass(id, name) {
-      API.toast(`Sending pass to ${name}...`, 'info');
+    async function sendSinglePass(id, name, email) {
+      const label = name ? `${name}${email ? ' (' + email + ')' : ''}` : `Pass #${id}`;
+      API.toast(`Forwarding pass to ${label}...`, 'info');
       try {
         const res = await API.request(`/api/email/send/${id}`, { method: 'POST' });
-        API.toast(res.message, 'success');
+        API.toast(res.message || `Entry pass forwarded to ${label}!`, 'success');
         loadStats();
         loadPasses();
       } catch (err) {
-        API.toast(err.message, 'error');
+        API.toast(err.message || `Failed to forward pass to ${label}`, 'error');
       }
     }
 

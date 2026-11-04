@@ -218,16 +218,17 @@ router.post('/', requireAdmin, async (req, res) => {
 
     const pool = getPool();
     const [result] = await pool.query(
-      `INSERT INTO students (name, roll_no, prn_no, department, email, phone, division, class, transaction_id, qr_token, qr_code_image)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO students (name, roll_no, prn_no, department, email, phone, division, class, transaction_id, qr_token, qr_code_image, mail_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
       [name.trim(), rNo, pNo, dept, email.trim(), phone ? phone.trim() : null, division ? division.trim() : null, sClass ? sClass.trim() : null, transaction_id ? transaction_id.trim() : null, token, qrImage]
     );
 
     res.json({
       success: true,
-      message: 'Student added and QR pass generated successfully.',
+      message: 'Student data saved. Email is pending — click "Forward Mail" to send pass to student.',
       studentId: result.insertId,
-      qr_token: token
+      qr_token: token,
+      mail_status: 'pending'
     });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
@@ -347,9 +348,9 @@ router.put('/:id', requireAdmin, async (req, res) => {
       successMsg += ` Email updated to ${updatedStudentData.email}.`;
     }
     if (emailSentNow) {
-      successMsg += ` Pass emailed to new address immediately!`;
+      successMsg += ` Pass forwarded to new email address!`;
     } else if (emailChanged) {
-      successMsg += ` Pass queued for email delivery.`;
+      successMsg += ` Mail status set to Pending — click Forward Mail to send pass.`;
     }
 
     res.json({
