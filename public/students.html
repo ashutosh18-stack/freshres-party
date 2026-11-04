@@ -169,15 +169,35 @@
                 <span class="text-[10px] text-slate-500 block mt-1">Supports .xlsx, .xls, .csv (Max 15MB)</span>
               </div>
 
-              <button 
-                type="submit" 
-                id="btnUpload"
-                class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-2 disabled:opacity-50"
-                disabled
-              >
-                <i class="fa-solid fa-upload"></i>
-                <span>Upload & Import Students</span>
-              </button>
+              <div class="p-2 rounded-xl bg-amber-50 border border-amber-200 text-[11px] text-amber-900">
+                <label class="flex items-center gap-2 cursor-pointer font-semibold select-none">
+                  <input type="checkbox" id="chkForceUpload" class="w-4 h-4 rounded text-amber-600 focus:ring-amber-500 border-amber-300">
+                  <span>⚡ Force Upload Mode (Save 100% of rows, auto-fix duplicates)</span>
+                </label>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button 
+                  type="submit" 
+                  id="btnUpload"
+                  onclick="window.isForceMode = false;"
+                  class="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  disabled
+                >
+                  <i class="fa-solid fa-upload"></i>
+                  <span>Standard Import</span>
+                </button>
+                <button 
+                  type="button" 
+                  id="btnForceUpload"
+                  onclick="window.isForceMode = true; document.getElementById('chkForceUpload').checked = true; document.getElementById('importForm').dispatchEvent(new Event('submit', { cancelable: true }));"
+                  class="w-full py-2.5 px-3 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition flex items-center justify-center gap-1.5 disabled:opacity-50 cursor-pointer"
+                  disabled
+                >
+                  <i class="fa-solid fa-bolt"></i>
+                  <span>⚡ Force Upload</span>
+                </button>
+              </div>
             </form>
           </div>
         </div>
@@ -598,6 +618,8 @@
       selectedFile = file;
       fileLabel.innerHTML = `📄 <strong class="text-blue-700">${file.name}</strong> (${(file.size / 1024).toFixed(1)} KB)`;
       btnUpload.disabled = false;
+      const btnForce = document.getElementById('btnForceUpload');
+      if (btnForce) btnForce.disabled = false;
     }
 
     if (importForm) {
@@ -605,12 +627,24 @@
         e.preventDefault();
         if (!selectedFile) return;
 
+        const isForce = window.isForceMode || (document.getElementById('chkForceUpload') && document.getElementById('chkForceUpload').checked);
+        const btnForce = document.getElementById('btnForceUpload');
+
         btnUpload.disabled = true;
-        btnUpload.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing & Generating QR Passes...`;
+        if (btnForce) btnForce.disabled = true;
+
+        if (isForce) {
+          if (btnForce) btnForce.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Force Uploading 100%...`;
+          btnUpload.innerHTML = `<i class="fa-solid fa-bolt"></i> Force Upload Active...`;
+        } else {
+          btnUpload.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Processing...`;
+        }
+
         importResult.classList.add('hidden');
 
         const formData = new FormData();
         formData.append('file', selectedFile);
+        formData.append('force', isForce ? 'true' : 'false');
 
         try {
           const res = await API.request('/api/students/import', {
@@ -654,7 +688,13 @@
           fetchErrorCount();
         } finally {
           btnUpload.disabled = false;
-          btnUpload.innerHTML = `<i class="fa-solid fa-upload"></i> <span>Upload & Import Students</span>`;
+          btnUpload.innerHTML = `<i class="fa-solid fa-upload"></i> <span>Standard Import</span>`;
+          const btnForce = document.getElementById('btnForceUpload');
+          if (btnForce) {
+            btnForce.disabled = false;
+            btnForce.innerHTML = `<i class="fa-solid fa-bolt"></i> <span>⚡ Force Upload</span>`;
+          }
+          window.isForceMode = false;
         }
       });
     }
@@ -1083,10 +1123,29 @@
       if (!records || records.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="5" class="py-12 text-center text-slate-400">
-              <i class="fa-solid fa-circle-check text-3xl text-emerald-500 mb-2 block"></i>
-              <p class="font-bold text-slate-800 text-sm">No Errors or Rejected Records</p>
-              <p class="text-xs text-slate-500 mt-1">All uploaded students were processed without conflicts.</p>
+            <td colspan="5" class="py-8 text-center text-slate-500">
+              <div class="max-w-lg mx-auto space-y-3">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center text-2xl mx-auto shadow-xs">
+                  <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <div>
+                  <p class="font-bold text-slate-900 text-sm">No Unhandled Errors in Log</p>
+                  <p class="text-xs text-slate-500 mt-1">
+                    If your uploaded file had more rows than the current total registered students, the missing count is typically due to:
+                  </p>
+                </div>
+                <div class="text-[11px] text-slate-600 text-left bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
+                  <p>• <strong>Duplicate PRN across files:</strong> When a PRN already exists in database, it updates the student instead of adding a duplicate row.</p>
+                  <p>• <strong>Multiple Sheets / Tabs:</strong> Multi-tab Excel workbooks are now fully scanned across all sheets.</p>
+                  <p>• <strong>Duplicate Email:</strong> Multiple students sharing the exact same email address.</p>
+                </div>
+                <div class="pt-2">
+                  <button onclick="document.getElementById('chkForceUpload').checked = true; document.getElementById('excelFileInput').click(); closeErrorsModal();" class="px-5 py-2.5 bg-gradient-to-r from-amber-600 to-rose-600 hover:from-amber-700 hover:to-rose-700 text-white font-bold rounded-xl text-xs shadow-sm transition active:scale-95 inline-flex items-center gap-2 cursor-pointer">
+                    <i class="fa-solid fa-bolt"></i>
+                    <span>Select File & Force Upload (100% of Rows)</span>
+                  </button>
+                </div>
+              </div>
             </td>
           </tr>
         `;

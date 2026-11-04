@@ -34,8 +34,10 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
     return res.status(400).json({ error: 'Please choose an Excel or CSV file to upload.' });
   }
 
+  const isForce = (req.body.force === 'true' || req.body.force === true);
+
   try {
-    const { students, errors, totalRows } = await parseStudentExcel(req.file.buffer);
+    const { students, errors, totalRows, sheetsCount } = await parseStudentExcel(req.file.buffer, { force: isForce });
 
     if (students.length === 0) {
       return res.status(400).json({
@@ -51,6 +53,20 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
 
     for (const s of students) {
       try {
+        if (isForce) {
+          // In Force Mode: check if this student's PRN or Email already exists in MySQL
+          const [conflict] = await pool.query(
+            'SELECT id FROM students WHERE prn_no = ? OR email = ? LIMIT 1',
+            [s.prn_no, s.email]
+          );
+
+          if (conflict.length > 0) {
+            // Append distinct suffix to ensure guaranteed new pass creation without overwriting
+            s.prn_no = `${s.prn_no}-F${Math.floor(100 + Math.random() * 900)}`;
+            s.email = s.email.replace('@', `+f${Math.floor(100 + Math.random() * 900)}@`);
+          }
+        }
+
         // Use INSERT ... ON DUPLICATE KEY UPDATE so re-uploading updates details without breaking existing QR tokens
         const [result] = await pool.query(
           `INSERT INTO students (name, roll_no, prn_no, department, email, phone, division, class, transaction_id, qr_token, qr_code_image)
@@ -111,12 +127,16 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
 
     res.json({
       success: true,
-      message: `Import processed: ${insertedCount} newly added, ${updatedCount} updated.`,
+      message: isForce 
+        ? `⚡ Force Import processed: ${insertedCount} newly registered, ${updatedCount} updated across ${sheetsCount || 1} sheet(s).`
+        : `Import processed: ${insertedCount} newly added, ${updatedCount} updated across ${sheetsCount || 1} sheet(s).`,
       stats: {
         totalRowsInFile: totalRows,
+        sheetsCount: sheetsCount || 1,
         importedCount: insertedCount,
         updatedCount: updatedCount,
-        skippedErrors: errors.length + dbErrors.length
+        skippedErrors: errors.length + dbErrors.length,
+        isForceMode: isForce
       },
       validationErrors: errors,
       databaseErrors: dbErrors

@@ -74,14 +74,24 @@ function normalizeHeader(header) {
 /**
  * Parse an Excel/CSV file buffer into clean student objects
  */
-async function parseStudentExcel(fileBuffer) {
+async function parseStudentExcel(fileBuffer, options = {}) {
+  const isForce = Boolean(options.force);
   const workbook = xlsx.read(fileBuffer, { type: 'buffer' });
-  const firstSheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[firstSheetName];
   
-  const rawRows = xlsx.utils.sheet_to_json(worksheet, { defval: '' });
-  if (!rawRows || rawRows.length === 0) {
-    throw new Error('The uploaded Excel sheet contains no data rows.');
+  // Read ALL sheets in the workbook (ensures tabs like Sheet1, Div A, Div B are all loaded)
+  let rawRows = [];
+  for (const sheetName of workbook.SheetNames) {
+    const ws = workbook.Sheets[sheetName];
+    const sheetData = xlsx.utils.sheet_to_json(ws, { defval: '' });
+    if (sheetData && sheetData.length > 0) {
+      sheetData.forEach((r, idx) => {
+        rawRows.push({ ...r, _sheetName: sheetName, _sheetRow: idx + 2 });
+      });
+    }
+  }
+
+  if (rawRows.length === 0) {
+    throw new Error('The uploaded Excel sheet contains no data rows across any sheets.');
   }
 
   const students = [];
@@ -91,12 +101,32 @@ async function parseStudentExcel(fileBuffer) {
 
   for (let i = 0; i < rawRows.length; i++) {
     const raw = rawRows[i];
-    const rowNum = i + 2; // +2 for 1-based index and header row
+    const rowNum = raw._sheetRow || (i + 2);
+    const sheetPrefix = (workbook.SheetNames.length > 1 && raw._sheetName) ? `[${raw._sheetName}] ` : '';
 
     const student = {};
     for (const [key, value] of Object.entries(raw)) {
+      if (key.startsWith('_')) continue;
       const normalizedKey = normalizeHeader(key);
       student[normalizedKey] = String(value || '').trim();
+    }
+
+    // Student Name
+    if (!student.name) {
+      if (isForce) {
+        student.name = `Student ${i + 1}`;
+      } else {
+        errors.push({
+          row: rowNum,
+          name: 'N/A',
+          phone: student.phone || 'N/A',
+          roll_no: student.roll_no || 'N/A',
+          prn_no: student.prn_no || 'N/A',
+          email: student.email || 'N/A',
+          error: `${sheetPrefix}Missing Student Name.`
+        });
+        continue;
+      }
     }
 
     // Roll number is optional and CAN BE DUPLICATE across divisions/departments
@@ -104,98 +134,104 @@ async function parseStudentExcel(fileBuffer) {
       student.roll_no = '-';
     }
 
-    // PRN Number is mandatory and MUST BE UNIQUE
+    // PRN Number
     if (!student.prn_no) {
-      // Check if PRN is in another column or fallback
       if (student.roll_no && student.roll_no !== '-') {
         student.prn_no = student.roll_no;
+      } else if (isForce) {
+        student.prn_no = `PRN-${Date.now().toString().slice(-6)}-${i + 1}`;
+      } else {
+        errors.push({
+          row: rowNum,
+          name: student.name,
+          phone: student.phone || 'N/A',
+          roll_no: student.roll_no,
+          prn_no: 'N/A',
+          email: student.email || 'N/A',
+          error: `${sheetPrefix}Missing PRN Number (PRN is mandatory and must be unique).`
+        });
+        continue;
       }
     }
 
-    // Required fields check: Student Name, PRN No, and Email
-    if (!student.name) {
-      errors.push({
-        row: rowNum,
-        name: 'N/A',
-        phone: student.phone || 'N/A',
-        roll_no: student.roll_no || 'N/A',
-        prn_no: student.prn_no || 'N/A',
-        email: student.email || 'N/A',
-        error: 'Missing required field: Student Name is mandatory.'
-      });
-      continue;
+    // Check duplicate PRN inside this file
+    let normalizedPrn = student.prn_no.toLowerCase();
+    if (seenPrns.has(normalizedPrn)) {
+      if (isForce) {
+        student.prn_no = `${student.prn_no}-D${i + 1}`;
+        normalizedPrn = student.prn_no.toLowerCase();
+      } else {
+        errors.push({
+          row: rowNum,
+          name: student.name,
+          phone: student.phone || 'N/A',
+          roll_no: student.roll_no,
+          prn_no: student.prn_no,
+          email: student.email || 'N/A',
+          error: `${sheetPrefix}Duplicate PRN "${student.prn_no}" found multiple times in file.`
+        });
+        continue;
+      }
     }
+    seenPrns.add(normalizedPrn);
 
-    if (!student.prn_no) {
-      errors.push({
-        row: rowNum,
-        name: student.name,
-        phone: student.phone || 'N/A',
-        roll_no: student.roll_no || 'N/A',
-        prn_no: 'N/A',
-        email: student.email || 'N/A',
-        error: 'Missing required field: PRN Number is mandatory and must be unique.'
-      });
-      continue;
-    }
-
+    // Email
     if (!student.email) {
-      errors.push({
-        row: rowNum,
-        name: student.name,
-        phone: student.phone || 'N/A',
-        roll_no: student.roll_no || 'N/A',
-        prn_no: student.prn_no,
-        email: 'N/A',
-        error: 'Missing required field: Email Address is mandatory and must be unique.'
-      });
-      continue;
+      if (isForce) {
+        const cleanPrn = student.prn_no.toLowerCase().replace(/[^a-z0-9]/g, '');
+        student.email = `${cleanPrn || `student${i + 1}`}@fresher.party`;
+      } else {
+        errors.push({
+          row: rowNum,
+          name: student.name,
+          phone: student.phone || 'N/A',
+          roll_no: student.roll_no,
+          prn_no: student.prn_no,
+          email: 'N/A',
+          error: `${sheetPrefix}Missing Email Address.`
+        });
+        continue;
+      }
     }
 
     // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(student.email)) {
-      errors.push({
-        row: rowNum,
-        name: student.name,
-        phone: student.phone || 'N/A',
-        roll_no: student.roll_no || 'N/A',
-        prn_no: student.prn_no,
-        email: student.email,
-        error: `Invalid email address format: "${student.email}".`
-      });
-      continue;
+      if (isForce) {
+        const cleanPrn = student.prn_no.toLowerCase().replace(/[^a-z0-9]/g, '');
+        student.email = `${cleanPrn || `student${i + 1}`}@fresher.party`;
+      } else {
+        errors.push({
+          row: rowNum,
+          name: student.name,
+          phone: student.phone || 'N/A',
+          roll_no: student.roll_no,
+          prn_no: student.prn_no,
+          email: student.email,
+          error: `${sheetPrefix}Invalid email address format: "${student.email}".`
+        });
+        continue;
+      }
     }
 
-    // Duplicate PRN check inside the same sheet
-    const normalizedPrn = student.prn_no.toLowerCase();
-    if (seenPrns.has(normalizedPrn)) {
-      errors.push({
-        row: rowNum,
-        name: student.name,
-        phone: student.phone || 'N/A',
-        roll_no: student.roll_no || 'N/A',
-        prn_no: student.prn_no,
-        email: student.email,
-        error: `Duplicate PRN "${student.prn_no}" found multiple times in this sheet.`
-      });
-      continue;
-    }
-    seenPrns.add(normalizedPrn);
-
-    // Duplicate Email check inside the same sheet
-    const normalizedEmail = student.email.toLowerCase();
+    // Check duplicate Email inside this file
+    let normalizedEmail = student.email.toLowerCase();
     if (seenEmails.has(normalizedEmail)) {
-      errors.push({
-        row: rowNum,
-        name: student.name,
-        phone: student.phone || 'N/A',
-        roll_no: student.roll_no || 'N/A',
-        prn_no: student.prn_no,
-        email: student.email,
-        error: `Duplicate Email "${student.email}" found multiple times in this sheet.`
-      });
-      continue;
+      if (isForce) {
+        student.email = student.email.replace('@', `+dup${i + 1}@`);
+        normalizedEmail = student.email.toLowerCase();
+      } else {
+        errors.push({
+          row: rowNum,
+          name: student.name,
+          phone: student.phone || 'N/A',
+          roll_no: student.roll_no,
+          prn_no: student.prn_no,
+          email: student.email,
+          error: `${sheetPrefix}Duplicate Email "${student.email}" found multiple times in file.`
+        });
+        continue;
+      }
     }
     seenEmails.add(normalizedEmail);
 
@@ -233,7 +269,7 @@ async function parseStudentExcel(fileBuffer) {
     });
   }
 
-  return { students, errors, totalRows: rawRows.length };
+  return { students, errors, totalRows: rawRows.length, sheetsCount: workbook.SheetNames.length };
 }
 
 /**
