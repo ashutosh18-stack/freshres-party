@@ -82,11 +82,31 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
         }
         dbErrors.push({
           name: s.name,
+          phone: s.phone || 'N/A',
+          email: s.email || 'N/A',
           prn: s.prn_no,
           roll_no: s.roll_no,
           error: errMsg
         });
       }
+    }
+
+    // Persist all rejected records into database table for the Errors / Problems center
+    const fileName = req.file.originalname || 'uploaded_sheet.xlsx';
+    for (const errItem of errors) {
+      await pool.query(
+        `INSERT INTO rejected_records (file_name, row_number, student_name, phone, roll_no, prn_no, email, error_reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [fileName, errItem.row || null, errItem.name || 'N/A', errItem.phone || 'N/A', errItem.roll_no || errItem.roll || 'N/A', errItem.prn_no || 'N/A', errItem.email || 'N/A', errItem.error]
+      ).catch(() => {});
+    }
+
+    for (const dbErr of dbErrors) {
+      await pool.query(
+        `INSERT INTO rejected_records (file_name, row_number, student_name, phone, roll_no, prn_no, email, error_reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [fileName, null, dbErr.name || 'N/A', dbErr.phone || 'N/A', dbErr.roll_no || 'N/A', dbErr.prn || dbErr.prn_no || 'N/A', dbErr.email || 'N/A', dbErr.error]
+      ).catch(() => {});
     }
 
     res.json({
@@ -104,6 +124,35 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
   } catch (err) {
     console.error('Import error:', err);
     res.status(500).json({ error: err.message || 'Failed to process Excel file.' });
+  }
+});
+
+// GET /api/students/rejected-records (List all upload & system rejected records)
+router.get('/rejected-records', requireAdmin, async (req, res) => {
+  try {
+    const pool = getPool();
+    const [rows] = await pool.query(
+      `SELECT * FROM rejected_records ORDER BY id DESC LIMIT 500`
+    );
+    res.json({
+      success: true,
+      count: rows.length,
+      records: rows
+    });
+  } catch (err) {
+    console.error('Fetch rejected records error:', err);
+    res.status(500).json({ error: 'Failed to fetch rejected records.' });
+  }
+});
+
+// DELETE /api/students/rejected-records (Clear rejected records)
+router.delete('/rejected-records', requireAdmin, async (req, res) => {
+  try {
+    const pool = getPool();
+    await pool.query('TRUNCATE TABLE rejected_records');
+    res.json({ success: true, message: 'Rejected records log cleared successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to clear rejected records.' });
   }
 });
 

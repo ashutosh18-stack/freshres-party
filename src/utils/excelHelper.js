@@ -18,8 +18,8 @@ function normalizeHeader(header) {
     return 'roll_no';
   }
 
-  // PRN Number (e.g. 'PRN No:', 'PRN No', 'PRN', 'Registration No')
-  if (h.startsWith('prn') || h.includes('prnno') || h.includes('regno') || h.includes('registrationno')) {
+  // PRN Number (e.g. 'PRN No:', 'PRN No', 'PRN', 'Registration No', 'Enrollment')
+  if (h.startsWith('prn') || h.includes('prnno') || h.includes('regno') || h.includes('registration') || h.includes('enroll') || h.includes('enrolment') || h.includes('studentid')) {
     return 'prn_no';
   }
 
@@ -117,7 +117,10 @@ async function parseStudentExcel(fileBuffer) {
       errors.push({
         row: rowNum,
         name: 'N/A',
-        roll: student.roll_no,
+        phone: student.phone || 'N/A',
+        roll_no: student.roll_no || 'N/A',
+        prn_no: student.prn_no || 'N/A',
+        email: student.email || 'N/A',
         error: 'Missing required field: Student Name is mandatory.'
       });
       continue;
@@ -127,7 +130,10 @@ async function parseStudentExcel(fileBuffer) {
       errors.push({
         row: rowNum,
         name: student.name,
-        roll: student.roll_no,
+        phone: student.phone || 'N/A',
+        roll_no: student.roll_no || 'N/A',
+        prn_no: 'N/A',
+        email: student.email || 'N/A',
         error: 'Missing required field: PRN Number is mandatory and must be unique.'
       });
       continue;
@@ -137,7 +143,10 @@ async function parseStudentExcel(fileBuffer) {
       errors.push({
         row: rowNum,
         name: student.name,
-        roll: student.roll_no,
+        phone: student.phone || 'N/A',
+        roll_no: student.roll_no || 'N/A',
+        prn_no: student.prn_no,
+        email: 'N/A',
         error: 'Missing required field: Email Address is mandatory and must be unique.'
       });
       continue;
@@ -149,7 +158,10 @@ async function parseStudentExcel(fileBuffer) {
       errors.push({
         row: rowNum,
         name: student.name,
-        roll: student.roll_no,
+        phone: student.phone || 'N/A',
+        roll_no: student.roll_no || 'N/A',
+        prn_no: student.prn_no,
+        email: student.email,
         error: `Invalid email address format: "${student.email}".`
       });
       continue;
@@ -161,7 +173,10 @@ async function parseStudentExcel(fileBuffer) {
       errors.push({
         row: rowNum,
         name: student.name,
-        roll: student.roll_no,
+        phone: student.phone || 'N/A',
+        roll_no: student.roll_no || 'N/A',
+        prn_no: student.prn_no,
+        email: student.email,
         error: `Duplicate PRN "${student.prn_no}" found multiple times in this sheet.`
       });
       continue;
@@ -174,7 +189,10 @@ async function parseStudentExcel(fileBuffer) {
       errors.push({
         row: rowNum,
         name: student.name,
-        roll: student.roll_no,
+        phone: student.phone || 'N/A',
+        roll_no: student.roll_no || 'N/A',
+        prn_no: student.prn_no,
+        email: student.email,
         error: `Duplicate Email "${student.email}" found multiple times in this sheet.`
       });
       continue;

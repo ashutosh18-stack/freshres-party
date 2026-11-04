@@ -93,6 +93,19 @@ async function initDB() {
         key_value LONGTEXT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB;
+
+      CREATE TABLE IF NOT EXISTS rejected_records (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        source VARCHAR(50) DEFAULT 'excel_import',
+        row_number INT NULL,
+        student_name VARCHAR(150) NULL,
+        phone VARCHAR(50) NULL,
+        roll_no VARCHAR(50) NULL,
+        prn_no VARCHAR(50) NULL,
+        email VARCHAR(150) NULL,
+        error_reason TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB;
     `);
 
     console.log('[DB] Core tables verified/created successfully.');
