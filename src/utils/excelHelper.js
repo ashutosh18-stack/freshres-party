@@ -139,7 +139,7 @@ async function parseStudentExcel(fileBuffer, options = {}) {
       if (student.roll_no && student.roll_no !== '-') {
         student.prn_no = student.roll_no;
       } else if (isForce) {
-        student.prn_no = `PRN-${Date.now().toString().slice(-6)}-${i + 1}`;
+        student.prn_no = `PRN-${student.name.replace(/[^a-zA-Z0-9]/g, '').slice(0, 8) || 'STD'}-${i + 1}`;
       } else {
         errors.push({
           row: rowNum,
@@ -148,30 +148,16 @@ async function parseStudentExcel(fileBuffer, options = {}) {
           roll_no: student.roll_no,
           prn_no: 'N/A',
           email: student.email || 'N/A',
-          error: `${sheetPrefix}Missing PRN Number (PRN is mandatory and must be unique).`
+          error: `${sheetPrefix}Missing PRN Number (PRN is mandatory and must be unique). (Tip: Use Force Upload to auto-fix wrong/missing PRN)`
         });
         continue;
       }
     }
 
-    // Check duplicate PRN inside this file
+    // Check duplicate PRN inside this file (Never create duplicate/double records)
     let normalizedPrn = student.prn_no.toLowerCase();
     if (seenPrns.has(normalizedPrn)) {
-      if (isForce) {
-        student.prn_no = `${student.prn_no}-D${i + 1}`;
-        normalizedPrn = student.prn_no.toLowerCase();
-      } else {
-        errors.push({
-          row: rowNum,
-          name: student.name,
-          phone: student.phone || 'N/A',
-          roll_no: student.roll_no,
-          prn_no: student.prn_no,
-          email: student.email || 'N/A',
-          error: `${sheetPrefix}Duplicate PRN "${student.prn_no}" found multiple times in file.`
-        });
-        continue;
-      }
+      continue; // Skip repeated row for the same student
     }
     seenPrns.add(normalizedPrn);
 
@@ -179,7 +165,7 @@ async function parseStudentExcel(fileBuffer, options = {}) {
     if (!student.email) {
       if (isForce) {
         const cleanPrn = student.prn_no.toLowerCase().replace(/[^a-z0-9]/g, '');
-        student.email = `${cleanPrn || `student${i + 1}`}@fresher.party`;
+        student.email = `${cleanPrn || `student${i + 1}`}@student.fresher.party`;
       } else {
         errors.push({
           row: rowNum,
@@ -188,18 +174,29 @@ async function parseStudentExcel(fileBuffer, options = {}) {
           roll_no: student.roll_no,
           prn_no: student.prn_no,
           email: 'N/A',
-          error: `${sheetPrefix}Missing Email Address.`
+          error: `${sheetPrefix}Missing Email Address. (Tip: Use Force Upload to auto-fix wrong/missing email)`
         });
         continue;
       }
     }
 
-    // Email format validation
+    // Email format validation (Force mode auto-fixes wrong/typo emails entered by students)
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(student.email)) {
       if (isForce) {
-        const cleanPrn = student.prn_no.toLowerCase().replace(/[^a-z0-9]/g, '');
-        student.email = `${cleanPrn || `student${i + 1}`}@fresher.party`;
+        let fixed = student.email.replace(/\s+/g, '');
+        if (fixed.includes('@') && !fixed.includes('.')) {
+          fixed = `${fixed}.com`;
+        } else if (!fixed.includes('@') && fixed.includes('.')) {
+          fixed = fixed.replace('.', '@');
+        } else if (!fixed.includes('@') && !fixed.includes('.')) {
+          fixed = `${fixed}@gmail.com`;
+        }
+        if (!emailRegex.test(fixed)) {
+          const cleanPrn = student.prn_no.toLowerCase().replace(/[^a-z0-9]/g, '');
+          fixed = `${cleanPrn || `student${i + 1}`}@student.fresher.party`;
+        }
+        student.email = fixed;
       } else {
         errors.push({
           row: rowNum,
@@ -208,30 +205,16 @@ async function parseStudentExcel(fileBuffer, options = {}) {
           roll_no: student.roll_no,
           prn_no: student.prn_no,
           email: student.email,
-          error: `${sheetPrefix}Invalid email address format: "${student.email}".`
+          error: `${sheetPrefix}Invalid email address format: "${student.email}". (Tip: Use Force Upload to auto-fix wrong email format)`
         });
         continue;
       }
     }
 
-    // Check duplicate Email inside this file
+    // Check duplicate Email inside this file (Never create duplicate/double records)
     let normalizedEmail = student.email.toLowerCase();
     if (seenEmails.has(normalizedEmail)) {
-      if (isForce) {
-        student.email = student.email.replace('@', `+dup${i + 1}@`);
-        normalizedEmail = student.email.toLowerCase();
-      } else {
-        errors.push({
-          row: rowNum,
-          name: student.name,
-          phone: student.phone || 'N/A',
-          roll_no: student.roll_no,
-          prn_no: student.prn_no,
-          email: student.email,
-          error: `${sheetPrefix}Duplicate Email "${student.email}" found multiple times in file.`
-        });
-        continue;
-      }
+      continue; // Skip repeated row for the same student
     }
     seenEmails.add(normalizedEmail);
 

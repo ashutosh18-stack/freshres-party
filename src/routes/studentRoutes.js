@@ -49,43 +49,55 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
     const pool = getPool();
     let insertedCount = 0;
     let updatedCount = 0;
+    let unchangedCount = 0;
     const dbErrors = [];
 
     for (const s of students) {
       try {
-        if (isForce) {
-          // In Force Mode: check if this student's PRN or Email already exists in MySQL
-          const [conflict] = await pool.query(
-            'SELECT id FROM students WHERE prn_no = ? OR email = ? LIMIT 1',
-            [s.prn_no, s.email]
-          );
-
-          if (conflict.length > 0) {
-            // Append distinct suffix to ensure guaranteed new pass creation without overwriting
-            s.prn_no = `${s.prn_no}-F${Math.floor(100 + Math.random() * 900)}`;
-            s.email = s.email.replace('@', `+f${Math.floor(100 + Math.random() * 900)}@`);
-          }
-        }
-
-        // Use INSERT ... ON DUPLICATE KEY UPDATE so re-uploading updates details without breaking existing QR tokens
-        const [result] = await pool.query(
-          `INSERT INTO students (name, roll_no, prn_no, department, email, phone, division, class, transaction_id, qr_token, qr_code_image)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-           ON DUPLICATE KEY UPDATE
-             name = VALUES(name),
-             roll_no = VALUES(roll_no),
-             department = VALUES(department),
-             phone = VALUES(phone),
-             division = VALUES(division),
-             class = VALUES(class),
-             transaction_id = VALUES(transaction_id)`,
-          [s.name, s.roll_no, s.prn_no, s.department, s.email, s.phone, s.division || null, s.class || null, s.transaction_id || null, s.qr_token, s.qr_code_image]
+        // 1. Check if student already exists by PRN or by Email (never create duplicates or double passes)
+        const [existingRows] = await pool.query(
+          'SELECT * FROM students WHERE prn_no = ? OR email = ? LIMIT 1',
+          [s.prn_no, s.email]
         );
 
-        if (result.affectedRows === 1) {
+        if (existingRows.length > 0) {
+          const existing = existingRows[0];
+          // Check if any details changed
+          const hasChanges = (
+            (existing.name || '').trim() !== (s.name || '').trim() ||
+            (existing.roll_no || '').trim() !== (s.roll_no || '').trim() ||
+            (existing.department || '').trim() !== (s.department || '').trim() ||
+            (s.phone && (existing.phone || '').trim() !== s.phone.trim()) ||
+            (s.division && (existing.division || '').trim() !== s.division.trim()) ||
+            (s.class && (existing.class || '').trim() !== s.class.trim()) ||
+            (s.transaction_id && (existing.transaction_id || '').trim() !== s.transaction_id.trim()) ||
+            (s.email && (existing.email || '').toLowerCase() !== s.email.toLowerCase()) ||
+            (s.prn_no && (existing.prn_no || '').toLowerCase() !== s.prn_no.toLowerCase())
+          );
+
+          if (hasChanges) {
+            await pool.query(
+              `UPDATE students 
+               SET name = ?, roll_no = ?, department = ?, 
+                   email = ?, prn_no = ?,
+                   phone = COALESCE(?, phone), division = COALESCE(?, division), 
+                   class = COALESCE(?, class), transaction_id = COALESCE(?, transaction_id)
+               WHERE id = ?`,
+              [s.name, s.roll_no, s.department, s.email, s.prn_no, s.phone || null, s.division || null, s.class || null, s.transaction_id || null, existing.id]
+            );
+            updatedCount++;
+          } else {
+            // Already in database with identical details -> no changes, no duplicate created
+            unchangedCount++;
+          }
+        } else {
+          // Genuinely new student record -> insert and issue QR pass
+          await pool.query(
+            `INSERT INTO students (name, roll_no, prn_no, department, email, phone, division, class, transaction_id, qr_token, qr_code_image, mail_status)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+            [s.name, s.roll_no, s.prn_no, s.department, s.email, s.phone || null, s.division || null, s.class || null, s.transaction_id || null, s.qr_token, s.qr_code_image]
+          );
           insertedCount++;
-        } else if (result.affectedRows === 2) {
-          updatedCount++;
         }
       } catch (err) {
         let errMsg = err.message;
@@ -107,7 +119,7 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
       }
     }
 
-    // Persist all rejected records into database table for the Errors / Problems center
+    // Persist any rejected records into database table for the Errors / Problems center
     const fileName = req.file.originalname || 'uploaded_sheet.xlsx';
     for (const errItem of errors) {
       await pool.query(
@@ -128,13 +140,14 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
     res.json({
       success: true,
       message: isForce 
-        ? `⚡ Force Import processed: ${insertedCount} newly registered, ${updatedCount} updated across ${sheetsCount || 1} sheet(s).`
-        : `Import processed: ${insertedCount} newly added, ${updatedCount} updated across ${sheetsCount || 1} sheet(s).`,
+        ? `⚡ Force Import: ${insertedCount} newly registered, ${updatedCount} updated, ${unchangedCount} unchanged (no duplicates).`
+        : `Import processed: ${insertedCount} newly added, ${updatedCount} updated, ${unchangedCount} unchanged (no duplicates).`,
       stats: {
         totalRowsInFile: totalRows,
         sheetsCount: sheetsCount || 1,
         importedCount: insertedCount,
         updatedCount: updatedCount,
+        unchangedCount: unchangedCount,
         skippedErrors: errors.length + dbErrors.length,
         isForceMode: isForce
       },
