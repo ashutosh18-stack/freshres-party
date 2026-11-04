@@ -53,10 +53,10 @@ async function initDB() {
       CREATE TABLE IF NOT EXISTS students (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(150) NOT NULL,
-        roll_no VARCHAR(50) NOT NULL UNIQUE,
+        roll_no VARCHAR(50) NOT NULL,
         prn_no VARCHAR(50) NOT NULL UNIQUE,
         department VARCHAR(100) NOT NULL,
-        email VARCHAR(150) NOT NULL,
+        email VARCHAR(150) NOT NULL UNIQUE,
         phone VARCHAR(30) NULL,
         division VARCHAR(50) NULL,
         class VARCHAR(100) NULL,
@@ -104,6 +104,16 @@ async function initDB() {
         ADD COLUMN IF NOT EXISTS class VARCHAR(100) NULL AFTER division,
         ADD COLUMN IF NOT EXISTS transaction_id VARCHAR(100) NULL AFTER class;
     `).catch(() => {});
+
+    // Ensure roll_no is NOT unique (allow duplicate roll numbers across divisions)
+    try {
+      await pool.query('ALTER TABLE students DROP INDEX roll_no');
+    } catch (e) {}
+
+    // Ensure email is unique across all students
+    try {
+      await pool.query('ALTER TABLE students ADD UNIQUE KEY uq_email (email)');
+    } catch (e) {}
 
     // 4. Seed default admin & volunteer if not already present
     const [existingUsers] = await pool.query('SELECT COUNT(*) as count FROM users');

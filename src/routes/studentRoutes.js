@@ -57,8 +57,8 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
              name = VALUES(name),
+             roll_no = VALUES(roll_no),
              department = VALUES(department),
-             email = VALUES(email),
              phone = VALUES(phone),
              division = VALUES(division),
              class = VALUES(class),
@@ -72,10 +72,19 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
           updatedCount++;
         }
       } catch (err) {
+        let errMsg = err.message;
+        if (err.code === 'ER_DUP_ENTRY') {
+          if (err.message && (err.message.includes('uq_email') || err.message.includes('email'))) {
+            errMsg = `Email "${s.email}" is already used by another student.`;
+          } else if (err.message && err.message.includes('prn_no')) {
+            errMsg = `PRN "${s.prn_no}" is already registered.`;
+          }
+        }
         dbErrors.push({
           name: s.name,
+          prn: s.prn_no,
           roll_no: s.roll_no,
-          error: err.message
+          error: errMsg
         });
       }
     }
@@ -205,12 +214,12 @@ router.get('/:id', requireVolunteerOrAdmin, async (req, res) => {
 router.post('/', requireAdmin, async (req, res) => {
   try {
     const { name, roll_no, prn_no, department, email, phone, division, class: sClass, transaction_id } = req.body;
-    if (!name || (!roll_no && !prn_no) || !email) {
-      return res.status(400).json({ error: 'Name, Roll No (or PRN No:), and Email are mandatory.' });
+    if (!name || (!prn_no && !roll_no) || !email) {
+      return res.status(400).json({ error: 'Name, PRN Number (Unique), and Email (Unique) are mandatory fields.' });
     }
 
-    const rNo = (roll_no || prn_no).trim();
     const pNo = (prn_no || roll_no).trim();
+    const rNo = (roll_no ? roll_no.trim() : '-');
     const dept = (department || sClass || (division ? ('Division ' + division) : '') || 'General').trim();
 
     const token = generatePassToken('FP26');
@@ -232,7 +241,13 @@ router.post('/', requireAdmin, async (req, res) => {
     });
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'A student with this Roll No or PRN No already exists.' });
+      if (err.message && (err.message.includes('uq_email') || err.message.includes('email'))) {
+        return res.status(400).json({ error: 'A student with this Email Address already exists.' });
+      }
+      if (err.message && err.message.includes('prn_no')) {
+        return res.status(400).json({ error: 'A student with this PRN Number already exists.' });
+      }
+      return res.status(400).json({ error: 'A student with this PRN Number or Email already exists.' });
     }
     console.error('Add student error:', err);
     res.status(500).json({ error: 'Failed to add student record.' });
@@ -368,7 +383,13 @@ router.put('/:id', requireAdmin, async (req, res) => {
 
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
-      return res.status(400).json({ error: 'Another student already has this Roll No or PRN No.' });
+      if (err.message && (err.message.includes('uq_email') || err.message.includes('email'))) {
+        return res.status(400).json({ error: 'Another student already has this Email Address.' });
+      }
+      if (err.message && err.message.includes('prn_no')) {
+        return res.status(400).json({ error: 'Another student already has this PRN Number.' });
+      }
+      return res.status(400).json({ error: 'Another student already has this PRN Number or Email Address.' });
     }
     console.error('Update student error:', err);
     res.status(500).json({ error: 'Failed to update student record: ' + err.message });

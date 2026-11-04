@@ -86,6 +86,8 @@ async function parseStudentExcel(fileBuffer) {
 
   const students = [];
   const errors = [];
+  const seenPrns = new Set();
+  const seenEmails = new Set();
 
   for (let i = 0; i < rawRows.length; i++) {
     const raw = rawRows[i];
@@ -97,36 +99,51 @@ async function parseStudentExcel(fileBuffer) {
       student[normalizedKey] = String(value || '').trim();
     }
 
-    // Fallbacks: If roll_no or prn_no is missing, use the other as fallback
-    if (!student.roll_no && student.prn_no) {
-      student.roll_no = student.prn_no;
-    }
-    if (!student.prn_no && student.roll_no) {
-      student.prn_no = student.roll_no;
+    // Roll number is optional and CAN BE DUPLICATE across divisions/departments
+    if (!student.roll_no) {
+      student.roll_no = '-';
     }
 
-    // Derive Department from Class & Division if Department column was not in the sheet
-    const deptValue = (
-      student.department ||
-      (student.class && student.division ? `${student.class} (Div ${student.division})` : '') ||
-      student.class ||
-      (student.division ? `Division ${student.division}` : '') ||
-      'General'
-    ).trim();
-    student.department = deptValue;
+    // PRN Number is mandatory and MUST BE UNIQUE
+    if (!student.prn_no) {
+      // Check if PRN is in another column or fallback
+      if (student.roll_no && student.roll_no !== '-') {
+        student.prn_no = student.roll_no;
+      }
+    }
 
-    // Required fields check: Name, Roll/PRN, and Email
-    if (!student.name || !student.roll_no || !student.email) {
+    // Required fields check: Student Name, PRN No, and Email
+    if (!student.name) {
       errors.push({
         row: rowNum,
-        name: student.name || 'N/A',
-        roll: student.roll_no || 'N/A',
-        error: 'Missing required field: Student Name, Roll No (or PRN No:), and Email are mandatory.'
+        name: 'N/A',
+        roll: student.roll_no,
+        error: 'Missing required field: Student Name is mandatory.'
       });
       continue;
     }
 
-    // Email validation
+    if (!student.prn_no) {
+      errors.push({
+        row: rowNum,
+        name: student.name,
+        roll: student.roll_no,
+        error: 'Missing required field: PRN Number is mandatory and must be unique.'
+      });
+      continue;
+    }
+
+    if (!student.email) {
+      errors.push({
+        row: rowNum,
+        name: student.name,
+        roll: student.roll_no,
+        error: 'Missing required field: Email Address is mandatory and must be unique.'
+      });
+      continue;
+    }
+
+    // Email format validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(student.email)) {
       errors.push({
@@ -137,6 +154,42 @@ async function parseStudentExcel(fileBuffer) {
       });
       continue;
     }
+
+    // Duplicate PRN check inside the same sheet
+    const normalizedPrn = student.prn_no.toLowerCase();
+    if (seenPrns.has(normalizedPrn)) {
+      errors.push({
+        row: rowNum,
+        name: student.name,
+        roll: student.roll_no,
+        error: `Duplicate PRN "${student.prn_no}" found multiple times in this sheet.`
+      });
+      continue;
+    }
+    seenPrns.add(normalizedPrn);
+
+    // Duplicate Email check inside the same sheet
+    const normalizedEmail = student.email.toLowerCase();
+    if (seenEmails.has(normalizedEmail)) {
+      errors.push({
+        row: rowNum,
+        name: student.name,
+        roll: student.roll_no,
+        error: `Duplicate Email "${student.email}" found multiple times in this sheet.`
+      });
+      continue;
+    }
+    seenEmails.add(normalizedEmail);
+
+    // Derive Department from Class & Division if Department column was not in the sheet
+    const deptValue = (
+      student.department ||
+      (student.class && student.division ? `${student.class} (Div ${student.division})` : '') ||
+      student.class ||
+      (student.division ? `Division ${student.division}` : '') ||
+      'General'
+    ).trim();
+    student.department = deptValue;
 
     // Generate unique pass token and QR code for this student
     const token = generatePassToken('FP26');
