@@ -443,26 +443,17 @@
       API.toast(enabled ? 'Sound beeps turned ON' : 'Sound beeps muted', 'info', 1500);
     }
 
-    function createHtml5QrCodeInstance() {
-      const qrFormat = (typeof Html5QrcodeSupportedFormats !== 'undefined' && Html5QrcodeSupportedFormats.QR_CODE)
-        ? Html5QrcodeSupportedFormats.QR_CODE
-        : 0;
-
-      return new Html5Qrcode('qr-reader', {
-        formatsToSupport: [ qrFormat ],
-        verbose: false,
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true // Native hardware GPU BarcodeDetector in Chromium/Android/iOS
-        }
-      });
-    }
-
     function getScannerConfig() {
       return {
-        fps: 25, // High-speed 25 FPS frame evaluation (checks every 40ms)
-        // qrbox is intentionally OMITTED so html5-qrcode scans 100% of the camera stream without requiring alignment inside a frame!
-        showTorchButtonIfSupported: true,
-        rememberLastUsedCamera: true
+        fps: 25, // Fast 25 frames evaluated per second for instant detection
+        qrbox: function(viewfinderWidth, viewfinderHeight) {
+          // Wide 95% area so user never has to waste time aligning or centering the pass inside a small box!
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const size = Math.floor(minEdge * 0.95);
+          return { width: size, height: size };
+        },
+        aspectRatio: 1.0,
+        showTorchButtonIfSupported: true
       };
     }
 
@@ -508,24 +499,15 @@
         isScannerRunning = false;
       }
 
-      html5QrCode = createHtml5QrCodeInstance();
+      html5QrCode = new Html5Qrcode('qr-reader');
       const config = getScannerConfig();
 
-      const cameraConstraints = {
-        facingMode: "environment",
-        width: { ideal: 1280, min: 640 },
-        height: { ideal: 720, min: 480 },
-        focusMode: "continuous",
-        advanced: [{ focusMode: "continuous" }]
-      };
-
       try {
-        await html5QrCode.start(cameraConstraints, config, onScanSuccess, onScanFailure);
-        isScannerRunning = true;
-      } catch (err) {
-        console.warn('Advanced constraints failed, starting basic environment camera:', err);
         await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
         isScannerRunning = true;
+      } catch (err) {
+        console.error('Environment camera start error:', err);
+        API.toast('Camera could not start. Please ensure permissions are granted in browser.', 'error');
       }
     }
 
@@ -535,33 +517,20 @@
         isScannerRunning = false;
       }
 
-      html5QrCode = createHtml5QrCodeInstance();
+      html5QrCode = new Html5Qrcode('qr-reader');
       const config = getScannerConfig();
 
-      const cameraConstraints = {
-        width: { ideal: 1280, min: 640 },
-        height: { ideal: 720, min: 480 },
-        focusMode: "continuous",
-        advanced: [{ focusMode: "continuous" }]
-      };
-
       try {
-        const target = (typeof cameraId === 'string' && cameraId && cameraId !== 'environment')
-          ? { deviceId: { exact: cameraId }, ...cameraConstraints }
-          : { facingMode: "environment", ...cameraConstraints };
-
-        await html5QrCode.start(target, config, onScanSuccess, onScanFailure);
+        await html5QrCode.start(cameraId, config, onScanSuccess, onScanFailure);
         isScannerRunning = true;
       } catch (err) {
-        console.warn('Advanced camera start failed, falling back to basic camera:', err);
+        console.warn('Failed to start camera with ID:', err);
         try {
-          const fallbackTarget = (typeof cameraId === 'string' && cameraId && cameraId !== 'environment')
-            ? cameraId
-            : { facingMode: "environment" };
-          await html5QrCode.start(fallbackTarget, config, onScanSuccess, onScanFailure);
+          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
           isScannerRunning = true;
         } catch (e2) {
           console.error('Camera fallback failed:', e2);
+          API.toast('Camera could not start. Please ensure permissions are granted in browser.', 'error');
         }
       }
     }
