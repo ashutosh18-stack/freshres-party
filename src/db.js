@@ -39,7 +39,7 @@ async function initDB() {
       queueLimit: 0
     });
 
-    // 3. Create tables
+    // 3. Create tables (Using MyISAM for high durability, zero InnoDB tablespace corruption on XAMPP)
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -48,7 +48,7 @@ async function initDB() {
         password_hash VARCHAR(255) NOT NULL,
         role ENUM('admin', 'volunteer') DEFAULT 'volunteer',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB;
+      ) ENGINE=MyISAM;
 
       CREATE TABLE IF NOT EXISTS students (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -75,7 +75,7 @@ async function initDB() {
         INDEX idx_prn (prn_no),
         INDEX idx_token (qr_token),
         INDEX idx_entry (entry_status)
-      ) ENGINE=InnoDB;
+      ) ENGINE=MyISAM;
 
       CREATE TABLE IF NOT EXISTS scan_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -84,18 +84,20 @@ async function initDB() {
         action ENUM('accepted', 'rejected', 'duplicate_attempt') NOT NULL,
         notes VARCHAR(255) NULL,
         scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-        FOREIGN KEY (scanned_by_id) REFERENCES users(id) ON DELETE CASCADE
-      ) ENGINE=InnoDB;
+        INDEX idx_student (student_id),
+        INDEX idx_scanner (scanned_by_id),
+        INDEX idx_time (scanned_at)
+      ) ENGINE=MyISAM;
 
       CREATE TABLE IF NOT EXISTS system_settings (
-        key_name VARCHAR(60) PRIMARY KEY,
+        key_name VARCHAR(100) PRIMARY KEY,
         key_value LONGTEXT NULL,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB;
+      ) ENGINE=MyISAM;
 
       CREATE TABLE IF NOT EXISTS rejected_records (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        file_name VARCHAR(255) NULL,
         source VARCHAR(50) DEFAULT 'excel_import',
         row_number INT NULL,
         student_name VARCHAR(150) NULL,
@@ -105,7 +107,7 @@ async function initDB() {
         email VARCHAR(150) NULL,
         error_reason TEXT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      ) ENGINE=InnoDB;
+      ) ENGINE=MyISAM;
     `);
 
     console.log('[DB] Core tables verified/created successfully.');
