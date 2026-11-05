@@ -82,7 +82,7 @@ async function getTransporter() {
 /**
  * Generate Fresher Party Email HTML
  */
-function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:3000') {
+function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:3000', qrSrcOverride = null) {
   const eventName = settings.event_name || 'Fresher Fiesta 2026';
   const eventVenue = settings.event_venue || 'Grand University Auditorium';
   const eventDate = settings.event_date || 'November 15, 2026 at 5:00 PM';
@@ -96,8 +96,9 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
     name: student.name || ''
   });
 
-  // Public high-resolution QR image URL embedded directly inside the pass card
+  // Public QR image URL or inline CID image
   const cloudQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=8&color=0f172a&bgcolor=ffffff&data=${encodeURIComponent(qrPayload)}`;
+  const qrImageSrc = qrSrcOverride || cloudQrUrl;
 
   return `
 <!DOCTYPE html>
@@ -146,7 +147,7 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;">
                       <tr>
                         <td align="center" style="background:#ffffff; padding:14px; border-radius:14px; border:1px solid #e2e8f0; box-shadow:0 4px 10px rgba(0,0,0,0.05); text-align:center;">
-                          <img src="${cloudQrUrl}" 
+                          <img src="${qrImageSrc}" 
                                alt="Fresher Party QR Code" 
                                width="220" 
                                height="220" 
@@ -237,8 +238,8 @@ function buildPassEmailHtml(student, settings, originUrl = 'http://localhost:300
  */
 async function sendPassEmail(student, originUrl = 'http://localhost:3000') {
   const { isSimulator, transporter, from, settings } = await getTransporter();
-  const subject = settings.email_subject || `🎟️ Your Entry Pass for ${settings.event_name || 'Fresher Fiesta 2026'}`;
-  const html = buildPassEmailHtml(student, settings, originUrl);
+  const qrCid = 'pass_qr_code_embedded';
+  const html = buildPassEmailHtml(student, settings, originUrl, `cid:${qrCid}`);
 
   if (isSimulator) {
     console.log(`[EMAIL SIMULATOR] Simulated delivery to ${student.name} <${student.email}> | Pass Token: ${student.qr_token}`);
@@ -250,30 +251,59 @@ async function sendPassEmail(student, originUrl = 'http://localhost:3000') {
     };
   }
 
+  // Clean, high-deliverability subject line (avoids spam triggers like 'VIP')
+  let subject = settings.email_subject || `Fresher Party 2026 - Entry Pass: ${student.name}`;
+  if (subject.includes('VIP')) {
+    subject = subject.replace(/VIP\s*/gi, '').trim();
+  }
+
   const plainText = `
-🎟️ ${settings.event_name || 'Fresher Fiesta 2026'} - OFFICIAL ENTRY PASS
+${settings.event_name || 'Fresher Party 2026'} - OFFICIAL ENTRY PASS
 
 Hey ${student.name}! Your party entry pass is ready.
 
 Pass Token: ${student.qr_token}
-Student: ${student.name}
+Student Name: ${student.name}
 Roll Number: ${student.roll_no || 'N/A'}
 PRN: ${student.prn_no || 'N/A'}
 Department: ${student.department || 'General'}
 
-Venue: ${settings.event_venue || 'Grand University Auditorium'}
-Date & Time: ${settings.event_date || 'November 15, 2026 at 5:00 PM'}
+Venue: ${settings.event_venue || 'D.Y.Patil University ATU, Talsande'}
+Date & Time: ${settings.event_date || 'November 6, 2026 at 10:00 AM'}
 
-Please present this QR entry pass at the entrance gate.
+Please present your QR entry pass at the entrance gate.
+(If you are viewing on phone and images are hidden, check your Promotions or Spam folder).
   `.trim();
 
-  // No extra attached files - QR is only inside the pass card
+  // Attach QR code as inline CID so it renders directly inside the email card without 3rd-party tracking blocks
+  const attachments = [];
+  if (student.qr_code_image && student.qr_code_image.includes('base64,')) {
+    const base64Data = student.qr_code_image.split('base64,')[1];
+    attachments.push({
+      filename: 'entry-pass-qr.png',
+      content: Buffer.from(base64Data, 'base64'),
+      cid: qrCid,
+      contentType: 'image/png',
+      contentDisposition: 'inline'
+    });
+  }
+
+  const cleanName = (student.name || '').replace(/[^\w\s]/gi, '').trim() || 'Student';
+  const cleanEmail = (student.email || '').trim();
+
   const mailOptions = {
     from,
-    to: `"${student.name}" <${student.email}>`,
+    to: `"${cleanName}" <${cleanEmail}>`,
+    replyTo: from,
     subject,
     text: plainText,
-    html
+    html,
+    attachments,
+    headers: {
+      'X-Priority': '1',
+      'X-MSMail-Priority': 'High',
+      'Importance': 'high'
+    }
   };
 
   const info = await transporter.sendMail(mailOptions);

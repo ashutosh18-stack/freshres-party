@@ -136,6 +136,8 @@ router.post('/send-batch', requireAdmin, async (req, res) => {
         );
         sentCount++;
         logs.push({ id: student.id, name: student.name, email: student.email, status: 'sent', simulated: result.simulated });
+        // Add 350ms throttle delay between emails to protect sender reputation on Gmail
+        await new Promise(r => setTimeout(r, 350));
       } catch (err) {
         await pool.query(
           "UPDATE students SET mail_status = 'failed' WHERE id = ?",
