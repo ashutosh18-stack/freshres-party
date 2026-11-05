@@ -41,8 +41,9 @@ router.get('/preview/:studentId', requireAdmin, async (req, res) => {
     const origin = `${req.protocol}://${req.get('host')}`;
     let html = buildPassEmailHtml(student, settings, origin);
 
-    // For browser preview, replace the cid:student-qr-code with the actual base64 image
+    // For browser preview, replace cid with the actual base64 image
     if (student.qr_code_image) {
+      html = html.replace('src="cid:pass_qr_code_embedded"', `src="${student.qr_code_image}"`);
       html = html.replace('src="cid:student-qr-code"', `src="${student.qr_code_image}"`);
     }
 
