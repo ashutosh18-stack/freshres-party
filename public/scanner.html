@@ -150,25 +150,35 @@
               </div>
             </div>
 
-            <!-- Scanner Box -->
-            <div class="relative w-full aspect-square bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center shadow-inner">
+            <!-- Scanner Box (Full-Frame Viewfinder with Wide Corner Reticles) -->
+            <div id="scannerContainer" class="relative w-full aspect-square bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center shadow-inner transition-all duration-200">
               <div id="qr-reader" class="w-full h-full"></div>
               
-              <!-- Large Square Scanning Target Frame (78% of Viewfinder) -->
-              <div class="absolute inset-[11%] pointer-events-none rounded-2xl border-2 border-dashed border-blue-400/40 flex items-center justify-center">
-                <!-- Laser Sweep Line inside the square -->
-                <div class="laser-line"></div>
+              <!-- Laser Sweep Line scanning across the full camera feed -->
+              <div class="laser-line"></div>
 
-                <!-- High-contrast Reticle Corner Markers -->
-                <div class="absolute -top-1 -left-1 w-7 h-7 border-t-4 border-l-4 border-blue-500 rounded-tl-xl shadow-sm"></div>
-                <div class="absolute -top-1 -right-1 w-7 h-7 border-t-4 border-r-4 border-blue-500 rounded-tr-xl shadow-sm"></div>
-                <div class="absolute -bottom-1 -left-1 w-7 h-7 border-b-4 border-l-4 border-blue-500 rounded-bl-xl shadow-sm"></div>
-                <div class="absolute -bottom-1 -right-1 w-7 h-7 border-b-4 border-r-4 border-blue-500 rounded-br-xl shadow-sm"></div>
+              <!-- High-contrast Full-View Reticle Corner Markers (Wide view, NOT cropped to a small box) -->
+              <div class="absolute inset-3 pointer-events-none flex flex-col justify-between">
+                <div class="flex justify-between items-start">
+                  <div class="w-7 h-7 border-t-[3px] border-l-[3px] border-blue-400 rounded-tl-xl shadow-sm"></div>
+                  <div class="w-7 h-7 border-t-[3px] border-r-[3px] border-blue-400 rounded-tr-xl shadow-sm"></div>
+                </div>
+                <div class="flex justify-between items-end">
+                  <div class="w-7 h-7 border-b-[3px] border-l-[3px] border-blue-400 rounded-bl-xl shadow-sm"></div>
+                  <div class="w-7 h-7 border-b-[3px] border-r-[3px] border-blue-400 rounded-br-xl shadow-sm"></div>
+                </div>
+              </div>
+
+              <!-- Instant Scan Status Pill -->
+              <div class="absolute top-3 left-1/2 -translate-x-1/2 pointer-events-none bg-slate-900/85 backdrop-blur-md px-3 py-1 rounded-full border border-blue-500/30 text-white text-[10px] font-bold flex items-center gap-1.5 shadow-sm">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>⚡ Instant Full-Screen Scan Active</span>
               </div>
             </div>
 
-            <p class="text-[11px] text-slate-500 text-center mt-3 font-medium">
-              Point your phone or tablet camera at the student's VIP pass QR code.
+            <p class="text-[11px] text-slate-500 text-center mt-2.5 font-medium flex items-center justify-center gap-1.5">
+              <i class="fa-solid fa-bolt text-amber-500"></i>
+              <span>Hold QR anywhere in front of camera — detects immediately without centering.</span>
             </p>
           </div>
 
@@ -420,6 +430,8 @@
     let isScannerRunning = false;
     let currentScannedStudent = null;
     let isProcessingScan = false;
+    let lastScannedCode = null;
+    let lastScanTime = 0;
 
     function toggleAudio() {
       const enabled = SoundHelper.toggleSound();
@@ -429,6 +441,29 @@
       if (icon) icon.className = iconClass;
       if (mobileIcon) mobileIcon.className = iconClass;
       API.toast(enabled ? 'Sound beeps turned ON' : 'Sound beeps muted', 'info', 1500);
+    }
+
+    function createHtml5QrCodeInstance() {
+      const qrFormat = (typeof Html5QrcodeSupportedFormats !== 'undefined' && Html5QrcodeSupportedFormats.QR_CODE)
+        ? Html5QrcodeSupportedFormats.QR_CODE
+        : 0;
+
+      return new Html5Qrcode('qr-reader', {
+        formatsToSupport: [ qrFormat ],
+        verbose: false,
+        experimentalFeatures: {
+          useBarCodeDetectorIfSupported: true // Native hardware GPU BarcodeDetector in Chromium/Android/iOS
+        }
+      });
+    }
+
+    function getScannerConfig() {
+      return {
+        fps: 25, // High-speed 25 FPS frame evaluation (checks every 40ms)
+        // qrbox is intentionally OMITTED so html5-qrcode scans 100% of the camera stream without requiring alignment inside a frame!
+        showTorchButtonIfSupported: true,
+        rememberLastUsedCamera: true
+      };
     }
 
     async function initQrScanner() {
@@ -467,31 +502,31 @@
       }
     }
 
-    function getScannerConfig() {
-      return {
-        fps: 20,
-        qrbox: function(viewfinderWidth, viewfinderHeight) {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          // Large, spacious 78% square scanning target box
-          const size = Math.floor(minEdge * 0.78);
-          return { width: size, height: size };
-        },
-        aspectRatio: 1.0,
-        showTorchButtonIfSupported: true
-      };
-    }
-
     async function startScannerDirectEnvironment() {
       if (isScannerRunning && html5QrCode) {
         await html5QrCode.stop().catch(() => {});
         isScannerRunning = false;
       }
 
-      html5QrCode = new Html5Qrcode('qr-reader');
+      html5QrCode = createHtml5QrCodeInstance();
       const config = getScannerConfig();
 
-      await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
-      isScannerRunning = true;
+      const cameraConstraints = {
+        facingMode: "environment",
+        width: { ideal: 1280, min: 640 },
+        height: { ideal: 720, min: 480 },
+        focusMode: "continuous",
+        advanced: [{ focusMode: "continuous" }]
+      };
+
+      try {
+        await html5QrCode.start(cameraConstraints, config, onScanSuccess, onScanFailure);
+        isScannerRunning = true;
+      } catch (err) {
+        console.warn('Advanced constraints failed, starting basic environment camera:', err);
+        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
+        isScannerRunning = true;
+      }
     }
 
     async function startScannerWithCamera(cameraId) {
@@ -500,24 +535,33 @@
         isScannerRunning = false;
       }
 
-      html5QrCode = new Html5Qrcode('qr-reader');
+      html5QrCode = createHtml5QrCodeInstance();
       const config = getScannerConfig();
 
+      const cameraConstraints = {
+        width: { ideal: 1280, min: 640 },
+        height: { ideal: 720, min: 480 },
+        focusMode: "continuous",
+        advanced: [{ focusMode: "continuous" }]
+      };
+
       try {
-        await html5QrCode.start(
-          cameraId,
-          config,
-          onScanSuccess,
-          onScanFailure
-        );
+        const target = (typeof cameraId === 'string' && cameraId && cameraId !== 'environment')
+          ? { deviceId: { exact: cameraId }, ...cameraConstraints }
+          : { facingMode: "environment", ...cameraConstraints };
+
+        await html5QrCode.start(target, config, onScanSuccess, onScanFailure);
         isScannerRunning = true;
       } catch (err) {
-        console.warn('Failed to start camera with ID:', err);
+        console.warn('Advanced camera start failed, falling back to basic camera:', err);
         try {
-          await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, onScanFailure);
+          const fallbackTarget = (typeof cameraId === 'string' && cameraId && cameraId !== 'environment')
+            ? cameraId
+            : { facingMode: "environment" };
+          await html5QrCode.start(fallbackTarget, config, onScanSuccess, onScanFailure);
           isScannerRunning = true;
         } catch (e2) {
-          console.error('Environment camera fallback failed:', e2);
+          console.error('Camera fallback failed:', e2);
         }
       }
     }
@@ -536,9 +580,29 @@
       }
     }
 
+    function flashScanSuccess() {
+      const container = document.getElementById('scannerContainer');
+      if (container) {
+        container.classList.add('ring-4', 'ring-emerald-500');
+        setTimeout(() => container.classList.remove('ring-4', 'ring-emerald-500'), 400);
+      }
+      if (navigator.vibrate) {
+        try { navigator.vibrate(60); } catch (e) {}
+      }
+    }
+
     function onScanSuccess(decodedText, decodedResult) {
+      const now = Date.now();
       if (isProcessingScan) return;
+      if (lastScannedCode === decodedText && (now - lastScanTime) < 1500) {
+        return; // debounce identical QR code
+      }
+
       isProcessingScan = true;
+      lastScannedCode = decodedText;
+      lastScanTime = now;
+
+      flashScanSuccess();
       SoundHelper.playClick();
       processStudentCode(decodedText);
     }
@@ -565,8 +629,10 @@
 
       } catch (err) {
         SoundHelper.playWarning();
-        API.toast(err.message || 'Pass invalid or not found in system!', 'error', 4000);
-        isProcessingScan = false;
+        API.toast(err.message || 'Pass invalid or not found in system!', 'error', 3000);
+        setTimeout(() => {
+          isProcessingScan = false;
+        }, 1200);
       }
     }
 
@@ -641,10 +707,10 @@
 
         if (action === 'accept') {
           SoundHelper.playSuccess();
-          API.toast(`✅ ADMITTED: ${currentScannedStudent.name}`, 'success', 3500);
+          API.toast(`✅ ADMITTED: ${currentScannedStudent.name}`, 'success', 2500);
         } else {
           SoundHelper.playWarning();
-          API.toast(`❌ REJECTED: ${currentScannedStudent.name}`, 'warning', 3500);
+          API.toast(`❌ REJECTED: ${currentScannedStudent.name}`, 'warning', 2500);
         }
 
         loadRecentScans();
@@ -652,7 +718,7 @@
 
         setTimeout(() => {
           resetScannerView();
-        }, 1800);
+        }, 800);
 
       } catch (err) {
         SoundHelper.playWarning();
