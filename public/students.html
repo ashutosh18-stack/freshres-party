@@ -103,6 +103,11 @@
           <span>Errors / Problems</span>
           <span id="badgeErrorCount" class="px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-600 font-mono text-[10px] font-bold">0</span>
         </button>
+        <!-- Download Registered Students Excel button -->
+        <button id="btnDownloadExcel" onclick="downloadStudentsExcel()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 transition active:scale-95 cursor-pointer" title="Download Excel of registered students (Name, PRN, Phone, Email)">
+          <i class="fa-solid fa-file-excel text-emerald-100"></i>
+          <span>Download Excel</span>
+        </button>
         <!-- Admin only actions -->
         <a href="/api/students/sample-excel" download="fresher_students_sample.xlsx" class="admin-only px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-300 shadow-sm flex items-center gap-2 transition active:scale-95">
           <i class="fa-solid fa-download text-blue-600"></i>
@@ -260,6 +265,10 @@
           <div class="flex items-center gap-2">
             <span class="text-xs font-bold text-slate-800">Registered Students Roster</span>
             <span id="studentCountBadge" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">0 Total</span>
+            <button onclick="downloadStudentsExcel()" class="ml-2 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition active:scale-95 cursor-pointer" title="Download all registered students as Excel file">
+              <i class="fa-solid fa-file-excel text-emerald-600"></i>
+              <span>Download Excel</span>
+            </button>
           </div>
           <a href="/passes.html" class="admin-only text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1">
             <span>QR & Email Dispatch Center</span>
@@ -517,7 +526,7 @@
       </div>
 
       <!-- Action Toolbar -->
-      <div class="flex flex-wrap items-center justify-between gap-3 pb-3 mb-3 border-b border-slate-100 shrink-0 text-xs">
+      <div class="flex flex-wrap items-center justify-between gap-3 pb-3 mb-2 border-b border-slate-100 shrink-0 text-xs">
         <div class="text-slate-500">
           Showing issues from Excel/CSV uploads and system rejections.
         </div>
@@ -535,6 +544,23 @@
             <span>Clear Log</span>
           </button>
         </div>
+      </div>
+
+      <!-- Issue Category Filter Tabs -->
+      <div class="flex items-center gap-2 pb-3 mb-2 border-b border-slate-100 shrink-0 text-xs overflow-x-auto">
+        <span class="text-slate-400 font-semibold text-[11px] mr-1">Filter:</span>
+        <button id="errTabAll" onclick="filterErrorCategory('all')" class="err-filter-tab px-2.5 py-1 rounded-lg bg-slate-900 text-white font-bold text-[11px] transition shadow-xs">
+          All Issues
+        </button>
+        <button id="errTabAlready" onclick="filterErrorCategory('already_registered')" class="err-filter-tab px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition">
+          Already in Database
+        </button>
+        <button id="errTabDuplicate" onclick="filterErrorCategory('duplicate_in_file')" class="err-filter-tab px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition">
+          Sheet Duplicates
+        </button>
+        <button id="errTabValidation" onclick="filterErrorCategory('validation_error')" class="err-filter-tab px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition">
+          Invalid / Missing Data
+        </button>
       </div>
 
       <!-- Scrollable Table -->
@@ -1104,6 +1130,38 @@
       }
     }
 
+    let currentErrFilter = 'all';
+
+    function filterErrorCategory(cat) {
+      currentErrFilter = cat;
+      document.querySelectorAll('.err-filter-tab').forEach(b => {
+        b.className = 'err-filter-tab px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] transition';
+      });
+      const activeBtn = {
+        'all': document.getElementById('errTabAll'),
+        'already_registered': document.getElementById('errTabAlready'),
+        'duplicate_in_file': document.getElementById('errTabDuplicate'),
+        'validation_error': document.getElementById('errTabValidation')
+      }[cat];
+      if (activeBtn) {
+        activeBtn.className = 'err-filter-tab px-2.5 py-1 rounded-lg bg-slate-900 text-white font-bold text-[11px] transition shadow-xs';
+      }
+      applyErrorsFilter();
+    }
+
+    function applyErrorsFilter() {
+      if (!cachedErrorRecords) return;
+      let filtered = cachedErrorRecords;
+      if (currentErrFilter === 'already_registered') {
+        filtered = cachedErrorRecords.filter(r => r.source === 'already_registered' || (r.error_reason && r.error_reason.toLowerCase().includes('already registered')));
+      } else if (currentErrFilter === 'duplicate_in_file') {
+        filtered = cachedErrorRecords.filter(r => r.source === 'duplicate_in_file' || (r.error_reason && r.error_reason.toLowerCase().includes('duplicate') && !r.error_reason.toLowerCase().includes('already registered')));
+      } else if (currentErrFilter === 'validation_error') {
+        filtered = cachedErrorRecords.filter(r => r.source !== 'already_registered' && !r.error_reason.toLowerCase().includes('already registered') && !r.error_reason.toLowerCase().includes('duplicate in uploaded file'));
+      }
+      renderErrorsTable(filtered);
+    }
+
     async function openErrorsModal() {
       const modal = document.getElementById('errorsModal');
       modal.classList.remove('hidden');
@@ -1114,7 +1172,7 @@
         const res = await API.request('/api/students/rejected-records');
         cachedErrorRecords = res.records || [];
         document.getElementById('modalErrorsBadge').textContent = `${cachedErrorRecords.length} Issues`;
-        renderErrorsTable(cachedErrorRecords);
+        filterErrorCategory('all');
         fetchErrorCount();
       } catch (err) {
         tbody.innerHTML = `<tr><td colspan="5" class="py-8 text-center text-rose-500 font-bold">${err.message}</td></tr>`;
@@ -1132,9 +1190,9 @@
                   <i class="fa-solid fa-circle-check"></i>
                 </div>
                 <div>
-                  <p class="font-bold text-slate-900 text-sm">No Unhandled Errors in Log</p>
+                  <p class="font-bold text-slate-900 text-sm">No Issues Found in this Category</p>
                   <p class="text-xs text-slate-500 mt-1">
-                    If your uploaded file had more rows than the current total registered students, the missing count is typically due to:
+                    All students in this filter have been processed or there are no unhandled errors recorded.
                   </p>
                 </div>
                 <div class="text-[11px] text-slate-600 text-left bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1.5">
@@ -1160,6 +1218,17 @@
           ? `<a href="tel:${r.phone}" class="text-blue-600 hover:underline font-mono font-bold inline-flex items-center gap-1"><i class="fa-solid fa-phone text-[10px]"></i> ${r.phone}</a>`
           : `<span class="text-slate-400">—</span>`;
 
+        const isAlready = (r.source === 'already_registered' || (r.error_reason && r.error_reason.toLowerCase().includes('already registered')));
+        const isDuplicate = (r.source === 'duplicate_in_file' || (r.error_reason && r.error_reason.toLowerCase().includes('duplicate')));
+
+        const badgeClass = isAlready 
+          ? 'bg-blue-50 border-blue-200 text-blue-700' 
+          : (isDuplicate ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-rose-50 border-rose-200 text-rose-700');
+        
+        const badgeIcon = isAlready 
+          ? 'fa-circle-info text-blue-600' 
+          : (isDuplicate ? 'fa-clone text-amber-600' : 'fa-circle-exclamation text-rose-600');
+
         return `
           <tr class="hover:bg-slate-50 transition">
             <td class="py-2.5 px-3">
@@ -1175,8 +1244,9 @@
               <p class="text-slate-700">${r.email || '—'}</p>
             </td>
             <td class="py-2.5 px-3">
-              <span class="inline-block px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-semibold text-[11px]">
-                <i class="fa-solid fa-circle-exclamation text-[10px] mr-1"></i>${r.error_reason}
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-semibold text-[11px] ${badgeClass}">
+                <i class="fa-solid ${badgeIcon} text-[10px]"></i>
+                <span>${r.error_reason}</span>
               </span>
             </td>
           </tr>
@@ -1245,6 +1315,44 @@
       a.click();
       URL.revokeObjectURL(url);
       API.toast('Downloaded rejected records CSV', 'success');
+    }
+
+    // Direct Excel Download for Registered Students (Name, PRN, Phone, Email)
+    async function downloadStudentsExcel() {
+      const token = API.getToken();
+      const btn = document.getElementById('btnDownloadExcel');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-emerald-200"></i> <span>Exporting Excel...</span>`;
+      }
+      try {
+        const response = await fetch('/api/students/export-excel', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to download Excel file');
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const today = new Date().toISOString().slice(0, 10);
+        a.download = `registered_students_${today}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        API.toast('Registered students list downloaded in Excel format!', 'success');
+      } catch (err) {
+        API.toast(err.message, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
+      }
     }
 
     fetchStudents();

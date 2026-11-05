@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const xlsx = require('xlsx');
 const { getPool } = require('../db');
 const { requireAdmin, requireVolunteerOrAdmin } = require('../auth');
 const { parseStudentExcel, generateSampleExcelBuffer } = require('../utils/excelHelper');
@@ -27,6 +28,82 @@ router.get('/sample-excel', (req, res) => {
   }
 });
 
+// GET /api/students/export-excel (Volunteer or Admin)
+// Export all registered students to formatted Excel (.xlsx)
+// Includes Name, PRN No, Phone Number, Email ID upfront as requested
+router.get('/export-excel', requireVolunteerOrAdmin, async (req, res) => {
+  try {
+    const pool = getPool();
+    const [students] = await pool.query(
+      `SELECT name, prn_no, phone, email, roll_no, department, division, class, transaction_id, entry_status, mail_status, created_at 
+       FROM students 
+       ORDER BY name ASC`
+    );
+
+    const headers = [
+      'Student Name',
+      'PRN No',
+      'Phone Number',
+      'Email ID',
+      'Roll No',
+      'Department',
+      'Division',
+      'Class',
+      'Transaction ID',
+      'Gate Entry Status',
+      'Pass Email Status',
+      'Registration Date'
+    ];
+
+    const rows = students.map(s => [
+      s.name || '',
+      s.prn_no || '',
+      s.phone || '',
+      s.email || '',
+      s.roll_no || '',
+      s.department || '',
+      s.division || '',
+      s.class || '',
+      s.transaction_id || '',
+      s.entry_status ? s.entry_status.toUpperCase() : 'PENDING',
+      s.mail_status ? s.mail_status.toUpperCase() : 'PENDING',
+      s.created_at ? new Date(s.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : ''
+    ]);
+
+    const wsData = [headers, ...rows];
+    const ws = xlsx.utils.aoa_to_sheet(wsData);
+
+    // Neat, wide column widths for professional formatting
+    ws['!cols'] = [
+      { wch: 28 }, // Student Name
+      { wch: 18 }, // PRN No
+      { wch: 16 }, // Phone Number
+      { wch: 32 }, // Email ID
+      { wch: 14 }, // Roll No
+      { wch: 22 }, // Department
+      { wch: 12 }, // Division
+      { wch: 20 }, // Class
+      { wch: 18 }, // Transaction ID
+      { wch: 18 }, // Gate Entry Status
+      { wch: 18 }, // Pass Email Status
+      { wch: 22 }  // Registration Date
+    ];
+
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, 'Registered Students');
+
+    const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const filename = `registered_students_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(buffer);
+  } catch (err) {
+    console.error('Error exporting registered students Excel:', err);
+    res.status(500).json({ error: 'Failed to generate Excel file.' });
+  }
+});
+
 // POST /api/students/import (Admin only)
 // Upload Excel or CSV file to import students
 router.post('/import', requireAdmin, upload.single('file'), async (req, res) => {
@@ -50,6 +127,7 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
     let insertedCount = 0;
     let updatedCount = 0;
     let unchangedCount = 0;
+    const unchangedRecords = [];
     const dbErrors = [];
 
     for (const s of students) {
@@ -89,6 +167,16 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
           } else {
             // Already in database with identical details -> no changes, no duplicate created
             unchangedCount++;
+            unchangedRecords.push({
+              row: s.row,
+              name: s.name,
+              phone: s.phone || 'N/A',
+              roll_no: s.roll_no,
+              prn_no: s.prn_no,
+              email: s.email,
+              source: 'already_registered',
+              error: `Already registered in system (PRN: ${s.prn_no}) with identical details. Skipped to prevent duplicate pass.`
+            });
           }
         } else {
           // Genuinely new student record -> insert and issue QR pass
@@ -109,33 +197,45 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
           }
         }
         dbErrors.push({
+          row: s.row,
           name: s.name,
           phone: s.phone || 'N/A',
           email: s.email || 'N/A',
           prn: s.prn_no,
           roll_no: s.roll_no,
+          source: 'db_error',
           error: errMsg
         });
       }
     }
 
-    // Persist any rejected records into database table for the Errors / Problems center
+    // Persist any rejected or skipped records into database table for the Errors / Problems center
     const fileName = req.file.originalname || 'uploaded_sheet.xlsx';
     for (const errItem of errors) {
       await pool.query(
-        `INSERT INTO rejected_records (file_name, row_number, student_name, phone, roll_no, prn_no, email, error_reason)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [fileName, errItem.row || null, errItem.name || 'N/A', errItem.phone || 'N/A', errItem.roll_no || errItem.roll || 'N/A', errItem.prn_no || 'N/A', errItem.email || 'N/A', errItem.error]
+        `INSERT INTO rejected_records (file_name, source, row_number, student_name, phone, roll_no, prn_no, email, error_reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [fileName, errItem.source || 'validation_error', errItem.row || null, errItem.name || 'N/A', errItem.phone || 'N/A', errItem.roll_no || errItem.roll || 'N/A', errItem.prn_no || 'N/A', errItem.email || 'N/A', errItem.error]
+      ).catch(() => {});
+    }
+
+    for (const unc of unchangedRecords) {
+      await pool.query(
+        `INSERT INTO rejected_records (file_name, source, row_number, student_name, phone, roll_no, prn_no, email, error_reason)
+         VALUES (?, 'already_registered', ?, ?, ?, ?, ?, ?, ?)`,
+        [fileName, unc.row || null, unc.name || 'N/A', unc.phone || 'N/A', unc.roll_no || 'N/A', unc.prn_no || 'N/A', unc.email || 'N/A', unc.error]
       ).catch(() => {});
     }
 
     for (const dbErr of dbErrors) {
       await pool.query(
-        `INSERT INTO rejected_records (file_name, row_number, student_name, phone, roll_no, prn_no, email, error_reason)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [fileName, null, dbErr.name || 'N/A', dbErr.phone || 'N/A', dbErr.roll_no || 'N/A', dbErr.prn || dbErr.prn_no || 'N/A', dbErr.email || 'N/A', dbErr.error]
+        `INSERT INTO rejected_records (file_name, source, row_number, student_name, phone, roll_no, prn_no, email, error_reason)
+         VALUES (?, 'db_error', ?, ?, ?, ?, ?, ?, ?)`,
+        [fileName, dbErr.row || null, dbErr.name || 'N/A', dbErr.phone || 'N/A', dbErr.roll_no || 'N/A', dbErr.prn || dbErr.prn_no || 'N/A', dbErr.email || 'N/A', dbErr.error]
       ).catch(() => {});
     }
+
+    const totalSkippedOrIssues = errors.length + dbErrors.length + unchangedRecords.length;
 
     res.json({
       success: true,
@@ -148,10 +248,11 @@ router.post('/import', requireAdmin, upload.single('file'), async (req, res) => 
         importedCount: insertedCount,
         updatedCount: updatedCount,
         unchangedCount: unchangedCount,
-        skippedErrors: errors.length + dbErrors.length,
+        skippedErrors: totalSkippedOrIssues,
         isForceMode: isForce
       },
       validationErrors: errors,
+      unchangedRecords: unchangedRecords,
       databaseErrors: dbErrors
     });
   } catch (err) {

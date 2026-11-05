@@ -97,6 +97,10 @@
         <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Unique QR passes generated for imported students and automated email dispatch</p>
       </div>
       <div class="flex flex-wrap items-center gap-2.5">
+        <button id="btnDownloadExcel" onclick="downloadStudentsExcel()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-sm flex items-center gap-2 transition active:scale-95 cursor-pointer" title="Download Excel of registered students (Name, PRN, Phone, Email)">
+          <i class="fa-solid fa-file-excel text-emerald-100"></i>
+          <span>Download Excel</span>
+        </button>
         <button onclick="openSmtpModal()" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-semibold border border-slate-300 shadow-sm flex items-center gap-2 transition active:scale-95">
           <i class="fa-solid fa-gear text-blue-600"></i>
           <span>SMTP / Email Setup</span>
@@ -893,6 +897,43 @@
       } finally {
         btn.disabled = false;
         btn.innerHTML = `<i class="fa-solid fa-bolt text-blue-600"></i> Test Connection`;
+      }
+    }
+
+    async function downloadStudentsExcel() {
+      const token = API.getToken();
+      const btn = document.getElementById('btnDownloadExcel');
+      const originalText = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin text-emerald-200"></i> <span>Exporting...</span>`;
+      }
+      try {
+        const response = await fetch('/api/students/export-excel', {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        if (!response.ok) {
+          const err = await response.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to download Excel file');
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const today = new Date().toISOString().slice(0, 10);
+        a.download = `registered_students_${today}.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        API.toast('Registered students list downloaded in Excel format!', 'success');
+      } catch (err) {
+        API.toast(err.message, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        }
       }
     }
 

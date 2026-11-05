@@ -111,6 +111,12 @@ async function parseStudentExcel(fileBuffer, options = {}) {
       student[normalizedKey] = String(value || '').trim();
     }
 
+    // Ignore completely empty rows (e.g. trailing blank rows in Excel sheets)
+    const hasAnyContent = Object.values(student).some(v => v !== '');
+    if (!hasAnyContent) {
+      continue;
+    }
+
     // Student Name
     if (!student.name) {
       if (isForce) {
@@ -123,6 +129,7 @@ async function parseStudentExcel(fileBuffer, options = {}) {
           roll_no: student.roll_no || 'N/A',
           prn_no: student.prn_no || 'N/A',
           email: student.email || 'N/A',
+          source: 'validation_error',
           error: `${sheetPrefix}Missing Student Name.`
         });
         continue;
@@ -148,6 +155,7 @@ async function parseStudentExcel(fileBuffer, options = {}) {
           roll_no: student.roll_no,
           prn_no: 'N/A',
           email: student.email || 'N/A',
+          source: 'validation_error',
           error: `${sheetPrefix}Missing PRN Number (PRN is mandatory and must be unique). (Tip: Use Force Upload to auto-fix wrong/missing PRN)`
         });
         continue;
@@ -157,6 +165,16 @@ async function parseStudentExcel(fileBuffer, options = {}) {
     // Check duplicate PRN inside this file (Never create duplicate/double records)
     let normalizedPrn = student.prn_no.toLowerCase();
     if (seenPrns.has(normalizedPrn)) {
+      errors.push({
+        row: rowNum,
+        name: student.name,
+        phone: student.phone || 'N/A',
+        roll_no: student.roll_no,
+        prn_no: student.prn_no,
+        email: student.email || 'N/A',
+        source: 'duplicate_in_file',
+        error: `${sheetPrefix}Duplicate PRN "${student.prn_no}" repeated in uploaded file (Row skipped to avoid duplicate pass).`
+      });
       continue; // Skip repeated row for the same student
     }
     seenPrns.add(normalizedPrn);
@@ -174,6 +192,7 @@ async function parseStudentExcel(fileBuffer, options = {}) {
           roll_no: student.roll_no,
           prn_no: student.prn_no,
           email: 'N/A',
+          source: 'validation_error',
           error: `${sheetPrefix}Missing Email Address. (Tip: Use Force Upload to auto-fix wrong/missing email)`
         });
         continue;
@@ -205,6 +224,7 @@ async function parseStudentExcel(fileBuffer, options = {}) {
           roll_no: student.roll_no,
           prn_no: student.prn_no,
           email: student.email,
+          source: 'validation_error',
           error: `${sheetPrefix}Invalid email address format: "${student.email}". (Tip: Use Force Upload to auto-fix wrong email format)`
         });
         continue;
@@ -214,6 +234,16 @@ async function parseStudentExcel(fileBuffer, options = {}) {
     // Check duplicate Email inside this file (Never create duplicate/double records)
     let normalizedEmail = student.email.toLowerCase();
     if (seenEmails.has(normalizedEmail)) {
+      errors.push({
+        row: rowNum,
+        name: student.name,
+        phone: student.phone || 'N/A',
+        roll_no: student.roll_no,
+        prn_no: student.prn_no,
+        email: student.email,
+        source: 'duplicate_in_file',
+        error: `${sheetPrefix}Duplicate Email "${student.email}" repeated in uploaded file (Row skipped to avoid duplicate pass).`
+      });
       continue; // Skip repeated row for the same student
     }
     seenEmails.add(normalizedEmail);
@@ -238,6 +268,8 @@ async function parseStudentExcel(fileBuffer, options = {}) {
     });
 
     students.push({
+      row: rowNum,
+      sheet: raw._sheetName || 'Sheet1',
       name: student.name,
       roll_no: student.roll_no,
       prn_no: student.prn_no,
